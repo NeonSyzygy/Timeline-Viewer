@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pan &amp; Zoom Viewer</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+        }
+
+        /* ── Viewport & Canvas ────────────────────────── */
+        #viewport {
+            width: 100%; height: 100%;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #viewport.dragging { cursor: grabbing; }
+
+        #canvas {
+            position: absolute;
+            top: 0; left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        /* SVG overlay for lines/connectors */
+        #svg-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 1px; height: 1px;
+            overflow: visible;
+            pointer-events: none;
+        }
+
+        /* ── Element Base Styles ──────────────────────── */
+        .pz-el { position: absolute; }
+        .pz-text, .pz-box, .pz-image { pointer-events: auto; }
+        .pz-image img { display: block; }
+
+        /* Link wrapping */
+        a.pz-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: absolute;
+            pointer-events: auto;
+            transition: filter 0.15s;
+        }
+        a.pz-link:hover { filter: brightness(1.08); }
+
+        /* ── Controls ─────────────────────────────────── */
+        #controls {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 1000;
+        }
+        .ctrl-btn {
+            width: 38px; height: 38px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.88);
+            color: #333;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            transition: background 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            line-height: 1;
+        }
+        .ctrl-btn:hover { background: #fff; }
+        .ctrl-btn:active { background: #e0e0e0; transform: scale(0.93); }
+
+        #zoom-level {
+            position: fixed;
+            bottom: 22px; left: 20px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Status Overlay ───────────────────────────── */
+        #status {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            background: #1a1a2e;
+            color: #bbb;
+            font-size: 15px;
+            text-align: center;
+            padding: 2rem;
+            transition: opacity 0.35s ease;
+        }
+        #status.hidden { opacity: 0; pointer-events: none; }
+        #status h2 { color: #e0e0e0; margin-bottom: 0.8em; font-size: 22px; font-weight: 600; }
+        #status p { margin-top: 0.5em; line-height: 1.7; }
+        #status a { color: #64b5f6; }
+        #status code {
+            background: rgba(255,255,255,0.08);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .status-inner { max-width: 560px; }
+        .err-heading { color: #e57373 !important; }
+
+        /* ── Spinner ──────────────────────────────────── */
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid rgba(255,255,255,0.15);
+            border-top-color: #64b5f6;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 1em;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="viewport">
+    <div id="canvas">
+        <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+</div>
+
+<div id="controls">
+    <button class="ctrl-btn" id="btn-zi" title="Zoom in (+ key)">+</button>
+    <button class="ctrl-btn" id="btn-zo" title="Zoom out (- key)">&minus;</button>
+    <button class="ctrl-btn" id="btn-fit" title="Fit content (F key)">&#x2B1C;</button>
+    <button class="ctrl-btn" id="btn-rst" title="Reset view (0 key)">&#x21BA;</button>
+</div>
+<div id="zoom-level">100%</div>
+
+<div id="status">
+    <div class="status-inner" id="status-text">
+        <div class="spinner"></div>
+        <p>Loading&hellip;</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ================================================================
+    //  CONFIGURATION
+    // ================================================================
+    var MIN_ZOOM       = 0.02;
+    var MAX_ZOOM       = 30;
+    var WHEEL_FACTOR   = 0.0012;
+    var BTN_ZOOM_STEP  = 0.3;
+    var CLICK_THRESH   = 5;       // px – drag shorter than this counts as a click
+    var PAN_KEY_STEP   = 60;
+
+    // ================================================================
+    //  STATE
+    // ================================================================
+    var scale = 1, panX = 0, panY = 0;
+    var dragging = false, dragDist = 0;
+    var dsx = 0, dsy = 0, dpx = 0, dpy = 0;          // drag start coords
+    var lastPinch = 0, pinchCX = 0, pinchCY = 0;      // pinch state
+    var contentBounds = { x1: 0, y1: 0, x2: 1000, y2: 1000 };
+
+    // ================================================================
+    //  DOM REFERENCES
+    // ================================================================
+    var vp       = document.getElementById('viewport');
+    var canvas   = document.getElementById('canvas');
+    var svgLayer = document.getElementById('svg-layer');
+    var overlay  = document.getElementById('status');
+    var overlayT = document.getElementById('status-text');
+    var zoomLbl  = document.getElementById('zoom-level');
+
+    // ================================================================
+    //  HELPERS
+    // ================================================================
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function escHTML(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // ================================================================
+    //  TRANSFORM
+    // ================================================================
+    function apply() {
+        canvas.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+        zoomLbl.textContent = Math.round(scale * 100) + '%';
+    }
+
+    function zoomAt(ns, cx, cy) {
+        ns = clamp(ns, MIN_ZOOM, MAX_ZOOM);
+        var r = vp.getBoundingClientRect();
+        var vx = cx - r.left, vy = cy - r.top;
+        panX = vx - (vx - panX) * (ns / scale);
+        panY = vy - (vy - panY) * (ns / scale);
+        scale = ns;
+        apply();
+    }
+
+    function zoomCenter(delta) {
+        var r = vp.getBoundingClientRect();
+        zoomAt(scale * (1 + delta), r.left + r.width / 2, r.top + r.height / 2);
+    }
+
+    function fitContent() {
+        var vw = vp.clientWidth, vh = vp.clientHeight;
+        var cw = contentBounds.x2 - contentBounds.x1;
+        var ch = contentBounds.y2 - contentBounds.y1;
+        if (cw <= 0 || ch <= 0) return;
+        var pad = 50;
+        var s = Math.min((vw - pad * 2) / cw, (vh - pad * 2) / ch, 3);
+        scale = clamp(s, MIN_ZOOM, MAX_ZOOM);
+        panX = (vw - cw * scale) / 2 - contentBounds.x1 * scale;
+        panY = (vh - ch * scale) / 2 - contentBounds.y1 * scale;
+        apply();
+    }
+
+    function resetView() { scale = 1; panX = 0; panY = 0; apply(); }
+
+    // ================================================================
+    //  MOUSE EVENTS
+    // ================================================================
+    vp.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        dragging = true; dragDist = 0;
+        dsx = e.clientX; dsy = e.clientY;
+        dpx = panX;      dpy = panY;
+        vp.classList.add('dragging');
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        var dx = e.clientX - dsx, dy = e.clientY - dsy;
+        dragDist = Math.sqrt(dx * dx + dy * dy);
+        panX = dpx + dx; panY = dpy + dy;
+        apply();
+    });
+    window.addEventListener('mouseup', function () {
+        dragging = false;
+        vp.classList.remove('dragging');
+    });
+
+    // Suppress link navigation when the user dragged
+    vp.addEventListener('click', function (e) {
+        if (dragDist > CLICK_THRESH) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+
+    vp.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        zoomAt(scale * (1 + (-e.deltaY * WHEEL_FACTOR)), e.clientX, e.clientY);
+    }, { passive: false });
+
+    // ================================================================
+    //  TOUCH EVENTS
+    // ================================================================
+    function tDist(a, b) {
+        var dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    vp.addEventListener('touchstart', function (e) {
+        var t = e.touches;
+        if (t.length === 1) {
+            dragging = true; dragDist = 0;
+            dsx = t[0].clientX; dsy = t[0].clientY;
+            dpx = panX; dpy = panY;
+        } else if (t.length >= 2) {
+            dragging = false;
+            lastPinch = tDist(t[0], t[1]);
+            pinchCX = (t[0].clientX + t[1].clientX) / 2;
+            pinchCY = (t[0].clientY + t[1].clientY) / 2;
+        }
+        e.preventDefault();
+    }, { passive: false });
+
+    vp.addEventListener('touchmove', function (e) {
+        e.preventDefault();
+        var t = e.touches;
+        if (t.length === 1 && dragging) {
+            var dx = t[0].clientX - dsx, dy = t[0].clientY - dsy;
+            dragDist = Math.sqrt(dx * dx + dy * dy);
+            panX = dpx + dx; panY = dpy + dy;
+            apply();
+        } else if (t.length >= 2) {
+            var d = tDist(t[0], t[1]);
+            var cx = (t[0].clientX + t[1].clientX) / 2;
+            var cy = (t[0].clientY + t[1].clientY) / 2;
+            var ns = clamp(scale * (d / lastPinch), MIN_ZOOM, MAX_ZOOM);
+            var r = vp.getBoundingClientRect();
+            var vx = cx - r.left, vy = cy - r.top;
+            panX = vx - (vx - panX) * (ns / scale) + (cx - pinchCX);
+            panY = vy - (vy - panY) * (ns / scale) + (cy - pinchCY);
+            scale = ns;
+            lastPinch = d; pinchCX = cx; pinchCY = cy;
+            apply();
+        }
+    }, { passive: false });
+
+    vp.addEventListener('touchend', function (e) {
+        var t = e.touches;
+        if (t.length === 0) { dragging = false; }
+        else if (t.length === 1) {
+            dragging = true; dragDist = 0;
+            dsx = t[0].clientX; dsy = t[0].clientY;
+            dpx = panX; dpy = panY;
+        }
+    });
+
+    // ================================================================
+    //  KEYBOARD
+    // ================================================================
+    window.addEventListener('keydown', function (e) {
+        switch (e.key) {
+            case '=': case '+': zoomCenter(BTN_ZOOM_STEP); break;
+            case '-':           zoomCenter(-BTN_ZOOM_STEP); break;
+            case '0':           resetView(); break;
+            case 'f': case 'F': fitContent(); break;
+            case 'ArrowUp':    panY += PAN_KEY_STEP; apply(); break;
+            case 'ArrowDown':  panY -= PAN_KEY_STEP; apply(); break;
+            case 'ArrowLeft':  panX += PAN_KEY_STEP; apply(); break;
+            case 'ArrowRight': panX -= PAN_KEY_STEP; apply(); break;
+            default: return;
+        }
+        e.preventDefault();
+    });
+
+    // ================================================================
+    //  UI BUTTONS
+    // ================================================================
+    document.getElementById('btn-zi').addEventListener('click',  function () { zoomCenter(BTN_ZOOM_STEP); });
+    document.getElementById('btn-zo').addEventListener('click',  function () { zoomCenter(-BTN_ZOOM_STEP); });
+    document.getElementById('btn-fit').addEventListener('click', fitContent);
+    document.getElementById('btn-rst').addEventListener('click', resetView);
+
+    // ================================================================
+    //  STYLE MAPPING
+    // ================================================================
+    var CSS_MAP = {
+        fontSize:'font-size', fontFamily:'font-family', fontWeight:'font-weight',
+        fontStyle:'font-style', textAlign:'text-align', lineHeight:'line-height',
+        letterSpacing:'letter-spacing', textDecoration:'text-decoration',
+        color:'color', background:'background', border:'border',
+        borderRadius:'border-radius', borderTop:'border-top', borderBottom:'border-bottom',
+        borderLeft:'border-left', borderRight:'border-right',
+        padding:'padding', opacity:'opacity', maxWidth:'max-width',
+        minWidth:'min-width', overflow:'overflow', whiteSpace:'white-space',
+        transform:'transform', zIndex:'z-index', cursor:'cursor',
+        backdropFilter:'backdrop-filter', boxShadow:'box-shadow',
+        textShadow:'text-shadow', outline:'outline', wordBreak:'word-break'
+    };
+    var UNITLESS = { opacity:1, zIndex:1, lineHeight:1, fontWeight:1 };
+
+    function applyStyles(el, s) {
+        if (!s) return;
+        for (var k in s) {
+            if (!s.hasOwnProperty(k)) continue;
+            var v = s[k];
+            if (k === 'shadow') {
+                if (v === true) el.style.boxShadow = '0 3px 14px rgba(0,0,0,0.13)';
+                else if (typeof v === 'string') el.style.boxShadow = v;
+                continue;
+            }
+            var prop = CSS_MAP[k];
+            if (prop) {
+                el.style.setProperty(prop,
+                    (typeof v === 'number' && !UNITLESS[k]) ? v + 'px' : String(v));
+            } else {
+                // fall back: try setting directly (camelCase or CSS custom prop)
+                try { el.style[k] = (typeof v === 'number' && !UNITLESS[k]) ? v + 'px' : String(v); }
+                catch (_) { /* ignore */ }
+            }
+        }
+    }
+
+    // ================================================================
+    //  RENDERING
+    // ================================================================
+    function render(d) {
+        switch (d.type) {
+            case 'text':   return rText(d);
+            case 'box':    return rBox(d);
+            case 'image':  return rImage(d);
+            case 'line':   return rLine(d);
+            case 'group':  return rGroup(d);
+            default:
+                console.warn('[viewer] Unknown element type: ' + d.type);
+                return null;
+        }
+    }
+
+    function rText(d) {
+        var el = document.createElement('div');
+        el.className = 'pz-el pz-text';
+        pos(el, d);
+        if (d.width) el.style.width = d.width + 'px';
+        el.innerHTML = d.content || '';
+        applyStyles(el, d.style);
+        return wrap(el, d);
+    }
+
+    function rBox(d) {
+        var el = document.createElement('div');
+        el.className = 'pz-el pz-box';
+        pos(el, d);
+        if (d.width)  el.style.width  = d.width  + 'px';
+        if (d.height) el.style.height = d.height + 'px';
+        applyStyles(el, d.style);
+        kids(el, d);
+        return wrap(el, d);
+    }
+
+    function rImage(d) {
+        var el = document.createElement('div');
+        el.className = 'pz-el pz-image';
+        pos(el, d);
+        var img = document.createElement('img');
+        img.src = d.src || '';
+        img.alt = d.alt || '';
+        img.draggable = false;
+        if (d.width)  img.style.width  = d.width  + 'px';
+        if (d.height) img.style.height = d.height + 'px';
+        applyStyles(img, d.style);
+        img.style.position = 'relative';
+        el.appendChild(img);
+        return wrap(el, d);
+    }
+
+    function rLine(d) {
+        if (!d.points || d.points.length < 2) return null;
+        var ns = 'http://www.w3.org/2000/svg';
+        var pts = d.points.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
+        var poly = document.createElementNS(ns, 'polyline');
+        poly.setAttribute('points', pts);
+        poly.setAttribute('fill', 'none');
+        poly.setAttribute('stroke',       (d.style && d.style.stroke)      || '#888');
+        poly.setAttribute('stroke-width', (d.style && d.style.strokeWidth) || 2);
+        poly.setAttribute('stroke-linecap', 'round');
+        poly.setAttribute('stroke-linejoin', 'round');
+        if (d.style && d.style.strokeDasharray)
+            poly.setAttribute('stroke-dasharray', d.style.strokeDasharray);
+
+        // Optional arrowhead
+        if (d.style && d.style.arrow) {
+            var mid = 'ah' + Math.random().toString(36).substr(2, 8);
+            var defs = document.createElementNS(ns, 'defs');
+            var marker = document.createElementNS(ns, 'marker');
+            marker.setAttribute('id', mid);
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            var arrow = document.createElementNS(ns, 'path');
+            arrow.setAttribute('d', 'M0,0 L10,3.5 L0,7');
+            arrow.setAttribute('fill', (d.style && d.style.stroke) || '#888');
+            marker.appendChild(arrow);
+            defs.appendChild(marker);
+            svgLayer.appendChild(defs);
+            poly.setAttribute('marker-end', 'url(#' + mid + ')');
+        }
+        svgLayer.appendChild(poly);
+        return null;   // lines live in the SVG layer directly
+    }
+
+    function rGroup(d) {
+        var el = document.createElement('div');
+        el.className = 'pz-el pz-group';
+        pos(el, d);
+        applyStyles(el, d.style);
+        kids(el, d);
+        return el;
+    }
+
+    // helpers
+    function pos(el, d) {
+        el.style.left = (d.x || 0) + 'px';
+        el.style.top  = (d.y || 0) + 'px';
+    }
+
+    function kids(parent, d) {
+        if (!d.children) return;
+        for (var i = 0; i < d.children.length; i++) {
+            var c = render(d.children[i]);
+            if (c) parent.appendChild(c);
+        }
+    }
+
+    function wrap(el, d) {
+        if (!d.link) return el;
+        var a = document.createElement('a');
+        a.href = d.link;
+        a.target = d.linkTarget || '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = 'pz-link';
+        a.style.left = el.style.left;
+        a.style.top  = el.style.top;
+        el.style.left = '0';
+        el.style.top  = '0';
+        el.style.position = 'relative';
+        a.appendChild(el);
+        return a;
+    }
+
+    // ================================================================
+    //  BOUNDS CALCULATION
+    // ================================================================
+    function calcBounds(elements) {
+        var x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        function walk(el, ox, oy) {
+            var ex = (el.x || 0) + ox, ey = (el.y || 0) + oy;
+            var ew = el.width  || (el.type === 'text' ? 200 : 100);
+            var eh = el.height || (el.type === 'text' ? 40  : (el.type === 'image' ? (el.height || ew) : 100));
+            x1 = Math.min(x1, ex);  y1 = Math.min(y1, ey);
+            x2 = Math.max(x2, ex + ew); y2 = Math.max(y2, ey + eh);
+            if (el.points) {
+                for (var i = 0; i < el.points.length; i++) {
+                    x1 = Math.min(x1, el.points[i][0]);
+                    y1 = Math.min(y1, el.points[i][1]);
+                    x2 = Math.max(x2, el.points[i][0]);
+                    y2 = Math.max(y2, el.points[i][1]);
+                }
+            }
+            if (el.children) {
+                for (var j = 0; j < el.children.length; j++) walk(el.children[j], ex, ey);
+            }
+        }
+        for (var i = 0; i < elements.length; i++) walk(elements[i], 0, 0);
+        var m = 40;
+        return { x1: x1 - m, y1: y1 - m, x2: x2 + m, y2: y2 + m };
+    }
+
+    // ================================================================
+    //  CONTENT LOADING
+    // ================================================================
+    function showMsg(html) {
+        overlayT.innerHTML = html;
+        overlay.classList.remove('hidden');
+    }
+    function hideOverlay() { overlay.classList.add('hidden'); }
+
+    function loadContent(data) {
+        var s = data.settings || {};
+        if (s.title) document.title = s.title;
+        if (s.background) vp.style.background = s.background;
+        if (s.defaultFont) canvas.style.fontFamily = s.defaultFont;
+
+        var els = data.elements || [];
+        for (var i = 0; i < els.length; i++) {
+            var node = render(els[i]);
+            if (node) canvas.appendChild(node);
+        }
+
+        contentBounds = calcBounds(els);
+
+        if (s.initialView) {
+            scale = s.initialView.zoom || 1;
+            panX  = s.initialView.x    || 0;
+            panY  = s.initialView.y    || 0;
+            apply();
+        } else {
+            fitContent();
+        }
+        hideOverlay();
+    }
+
+    // ================================================================
+    //  INIT
+    // ================================================================
+    var params = new URLSearchParams(window.location.search);
+    var src = params.get('src');
+
+    if (!src) {
+        showMsg(
+            '<h2>Pan &amp; Zoom Viewer</h2>' +
+            '<p>No content file specified.</p>' +
+            '<p>Add <code>?src=&lt;path-or-url&gt;</code> to the page URL to load a content&nbsp;JSON&nbsp;file.</p>' +
+            '<p style="margin-top:1em;font-size:13px;color:#888;">Example:<br>' +
+            '<code>viewer.html?src=my-content.json</code></p>'
+        );
+    } else {
+        fetch(src)
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+                return r.json();
+            })
+            .then(loadContent)
+            .catch(function (err) {
+                showMsg(
+                    '<h2 class="err-heading">Error Loading Content</h2>' +
+                    '<p>' + escHTML(err.message) + '</p>' +
+                    '<p style="margin-top:1em;font-size:13px;color:#777;">Source: <code>' + escHTML(src) + '</code></p>' +
+                    '<p style="margin-top:0.8em;font-size:13px;color:#777;">Ensure the file exists and is accessible.<br>' +
+                    'If hosted on a different domain, verify that CORS headers are set.</p>'
+                );
+            });
+    }
+})();
+</script>
+</body>
+</html>
