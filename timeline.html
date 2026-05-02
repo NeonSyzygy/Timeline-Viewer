@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Timeline</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;font-family:sans-serif;background:#111;color:#eee}
+#vp{width:100%;height:100%;overflow:hidden;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+#vp.drag{cursor:grabbing}
+#c{position:absolute;transform-origin:0 0}
+#svg{position:absolute;overflow:visible;pointer-events:none;width:1px;height:1px}
+.ev{position:absolute;border:1px solid #555;background:#222;padding:8px 10px;font-size:13px;line-height:1.4;pointer-events:auto}
+.ev a{color:#7af}
+.col-hdr{position:absolute;color:#666;font-size:13px;font-weight:bold;text-align:center}
+</style>
+</head>
+<body>
+<div id="vp"><div id="c">
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <path d="M0,0 L10,3.5 L0,7" fill="#666"/>
+    </marker></defs>
+  </svg>
+</div></div>
+<script>
+(function(){
+'use strict';
+
+var vp=document.getElementById('vp'), c=document.getElementById('c'), svg=document.getElementById('svg');
+
+// ── Pan/Zoom state ──
+var s=1, px=0, py=0;          // scale, pan x/y
+var drag=false, dd=0;          // dragging, drag-distance²
+var sx,sy,spx,spy;             // drag start
+var lp=0, pcx,pcy;             // pinch state
+var bounds=null;               // content bounds for fit-to-view
+
+// Apply transform
+function apply(){c.style.transform='translate('+px+'px,'+py+'px) scale('+s+')';}
+
+// Zoom toward screen point (cx,cy)
+function zAt(ns,cx,cy){
+  ns=Math.max(.02,Math.min(30,ns));
+  var r=vp.getBoundingClientRect(),vx=cx-r.left,vy=cy-r.top;
+  px=vx-(vx-px)*(ns/s); py=vy-(vy-py)*(ns/s); s=ns; apply();
+}
+
+// Fit content bounds into viewport
+function fit(){
+  if(!bounds)return;
+  var vw=vp.clientWidth,vh=vp.clientHeight,cw=bounds.x2-bounds.x1,ch=bounds.y2-bounds.y1;
+  if(cw<=0||ch<=0)return;
+  s=Math.max(.02,Math.min(3,Math.min((vw-80)/cw,(vh-80)/ch)));
+  px=(vw-cw*s)/2-bounds.x1*s; py=(vh-ch*s)/2-bounds.y1*s; apply();
+}
+
+// ── Mouse ──
+vp.onmousedown=function(e){if(e.button)return;drag=true;dd=0;sx=e.clientX;sy=e.clientY;spx=px;spy=py;vp.classList.add('drag');e.preventDefault();};
+onmousemove=function(e){if(!drag)return;var dx=e.clientX-sx,dy=e.clientY-sy;dd=dx*dx+dy*dy;px=spx+dx;py=spy+dy;apply();};
+onmouseup=function(){drag=false;vp.classList.remove('drag');};
+// suppress link clicks that were actually drags
+vp.addEventListener('click',function(e){if(dd>25){e.preventDefault();e.stopPropagation();}},true);
+
+// ── Wheel zoom ──
+vp.addEventListener('wheel',function(e){e.preventDefault();zAt(s*(1-e.deltaY*.001),e.clientX,e.clientY);},{passive:false});
+
+// ── Touch (1-finger pan, 2-finger pinch) ──
+vp.addEventListener('touchstart',function(e){e.preventDefault();var t=e.touches;if(t.length===1){drag=true;dd=0;sx=t[0].clientX;sy=t[0].clientY;spx=px;spy=py;}else if(t.length>=2){drag=false;lp=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);pcx=(t[0].clientX+t[1].clientX)/2;pcy=(t[0].clientY+t[1].clientY)/2;}},{passive:false});
+vp.addEventListener('touchmove',function(e){e.preventDefault();var t=e.touches;if(t.length===1&&drag){var dx=t[0].clientX-sx,dy=t[0].clientY-sy;dd=dx*dx+dy*dy;px=spx+dx;py=spy+dy;apply();}else if(t.length>=2){var d=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY),cx=(t[0].clientX+t[1].clientX)/2,cy=(t[0].clientY+t[1].clientY)/2,ns=Math.max(.02,Math.min(30,s*(d/lp))),r=vp.getBoundingClientRect(),vx=cx-r.left,vy=cy-r.top;px=vx-(vx-px)*(ns/s)+(cx-pcx);py=vy-(vy-py)*(ns/s)+(cy-pcy);s=ns;lp=d;pcx=cx;pcy=cy;apply();}},{passive:false});
+vp.addEventListener('touchend',function(e){var t=e.touches;if(!t.length)drag=false;else if(t.length===1){drag=true;dd=0;sx=t[0].clientX;sy=t[0].clientY;spx=px;spy=py;}});
+
+// ── Keyboard ──
+onkeydown=function(e){
+  if(e.key==='+'||e.key==='=')zAt(s*1.3,vp.clientWidth/2,vp.clientHeight/2);
+  else if(e.key==='-')zAt(s/1.3,vp.clientWidth/2,vp.clientHeight/2);
+  else if(e.key==='f'||e.key==='F')fit();
+  else if(e.key==='0'){s=1;px=0;py=0;apply();}
+  else return;
+  e.preventDefault();
+};
+
+// ══════════════════════════════════════════════
+//  LAYOUT ALGORITHM
+// ══════════════════════════════════════════════
+
+var COL_W=200, GAP=20, HDR_H=30, PAD=10;
+
+function buildLayout(data){
+  var evts=data.events||[], cols=(data.columns||[]).slice(), byName={};
+  evts.forEach(function(e){byName[e.name]=e;});
+
+  // ── Union-Find: merge contemporary events into groups ──
+  var par={};
+  evts.forEach(function(e){par[e.name]=e.name;});
+  function find(x){return par[x]===x?x:(par[x]=find(par[x]));}
+  function union(a,b){par[find(a)]=find(b);}
+  evts.forEach(function(e){(e.contemporary||[]).forEach(function(c){union(e.name,c);});});
+
+  // ── Identify all groups ──
+  var allG={};
+  evts.forEach(function(e){allG[find(e.name)]=true;});
+  var gids=Object.keys(allG);
+
+  // ── Build DAG between groups (edges mean "this group comes before that group") ──
+  var adj={}, inD={}, seen={};
+  gids.forEach(function(g){adj[g]=[];inD[g]=0;});
+  function addE(from,to){
+    if(from===to)return;var k=from+'>'+to;if(seen[k])return;seen[k]=true;
+    adj[from].push(to);inD[to]++;
+  }
+  evts.forEach(function(e){
+    var eg=find(e.name);
+    // "prior" events come before this one → edge from prior's group to this group
+    (e.prior||[]).concat(e.linkedPrior||[]).forEach(function(p){addE(find(p),eg);});
+    // "following" events come after this one → edge from this group to following's group
+    (e.following||[]).concat(e.linkedFollowing||[]).forEach(function(f){addE(eg,find(f));});
+  });
+
+  // ── Topological sort (Kahn's) + longest-path row assignment ──
+  var row={};
+  gids.forEach(function(g){row[g]=0;});
+  var q=[], sorted=[];
+  gids.forEach(function(g){if(!inD[g])q.push(g);});
+  while(q.length){
+    var g=q.shift(); sorted.push(g);
+    adj[g].forEach(function(ng){
+      row[ng]=Math.max(row[ng],row[g]+1);
+      if(!--inD[ng])q.push(ng);
+    });
+  }
+  // cycle → bail
+  if(sorted.length!==gids.length){
+    document.body.textContent='Circular dependency detected.';return null;
+  }
+
+  // ── Column assignment ──
+  // auto-discover columns from events if none declared
+  if(!cols.length){
+    var cs={};
+    evts.forEach(function(e){var co=e.column||'Default';if(!cs[co]){cols.push(co);cs[co]=true;}});
+  }
+  var ci={}; cols.forEach(function(n,i){ci[n]=i;});
+
+  // stamp each event with its computed row and column index
+  evts.forEach(function(e){
+    e._row=row[find(e.name)];
+    e._col=(e.column&&ci[e.column]!=null)?ci[e.column]:0;
+  });
+
+  // ── Collect arrows (linked relationships only) ──
+  var arrows=[];
+  evts.forEach(function(e){
+    (e.linkedPrior||[]).forEach(function(p){arrows.push({from:p,to:e.name});});
+    (e.linkedFollowing||[]).forEach(function(f){arrows.push({from:e.name,to:f});});
+  });
+
+  return {events:evts,columns:cols,arrows:arrows};
+}
+
+// ══════════════════════════════════════════════
+//  RENDERING
+// ══════════════════════════════════════════════
+
+function render(res){
+  // column headers
+  res.columns.forEach(function(name,i){
+    var el=document.createElement('div');el.className='col-hdr';
+    el.style.left=(i*COL_W+PAD)+'px';el.style.top='0';el.style.width=(COL_W-PAD*2)+'px';
+    el.textContent=name; c.appendChild(el);
+  });
+
+  // create event boxes (y=0 temporarily; will reposition after measuring heights)
+  var boxes={};
+  res.events.forEach(function(e){
+    var el=document.createElement('div');el.className='ev';
+    el.style.left=(e._col*COL_W+PAD)+'px';el.style.top='0';
+    el.style.width=(COL_W-PAD*2)+'px';
+    var h='<b>'+e.name+'</b>';
+    if(e.date)h+='<br><small style="color:#888">'+e.date+'</small>';
+    if(e.content)h+='<br>'+e.content;
+    el.innerHTML=h;
+    c.appendChild(el);
+    boxes[e.name]={el:el,x:e._col*COL_W+PAD,w:COL_W-PAD*2,row:e._row};
+  });
+
+  // after paint: measure heights, compute real y positions, draw arrows, fit view
+  requestAnimationFrame(function(){
+    // max height per row
+    var rh={};
+    Object.keys(boxes).forEach(function(n){var b=boxes[n];b.h=b.el.offsetHeight;rh[b.row]=Math.max(rh[b.row]||0,b.h);});
+
+    // cumulative y per row
+    var mr=0;Object.keys(rh).forEach(function(r){mr=Math.max(mr,+r);});
+    var ry={},y=HDR_H+GAP;
+    for(var r=0;r<=mr;r++){ry[r]=y;y+=(rh[r]||0)+GAP;}
+
+    // reposition boxes
+    Object.keys(boxes).forEach(function(n){var b=boxes[n];b.y=ry[b.row];b.el.style.top=b.y+'px';});
+
+    // draw arrows (straight line, bottom-center of source → top-center of target)
+    res.arrows.forEach(function(a){
+      var f=boxes[a.from],t=boxes[a.to];if(!f||!t)return;
+      var ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+      ln.setAttribute('x1',f.x+f.w/2);ln.setAttribute('y1',f.y+f.h);
+      ln.setAttribute('x2',t.x+t.w/2);ln.setAttribute('y2',t.y);
+      ln.setAttribute('stroke','#666');ln.setAttribute('stroke-width','1.5');
+      ln.setAttribute('marker-end','url(#ah)');
+      svg.appendChild(ln);
+    });
+
+    // compute bounds and fit
+    var x1=Infinity,x2=0,y2=0;
+    Object.keys(boxes).forEach(function(n){var b=boxes[n];x1=Math.min(x1,b.x);x2=Math.max(x2,b.x+b.w);y2=Math.max(y2,b.y+b.h);});
+    bounds={x1:x1-20,y1:-10,x2:x2+20,y2:y2+20};
+    fit();
+  });
+}
+
+// ══════════════════════════════════════════════
+//  INIT: load ?src= content file
+// ══════════════════════════════════════════════
+
+var src=new URLSearchParams(location.search).get('src');
+if(!src){document.body.style.cssText='display:flex;align-items:center;justify-content:center';document.body.innerHTML='<p style="color:#888">Add ?src=file.json to the URL</p>';}
+else fetch(src).then(function(r){return r.json();}).then(function(data){
+  if(data.title)document.title=data.title;
+  var res=buildLayout(data);
+  if(res)render(res);
+});
+
+})();
+</script>
+</body>
+</html>

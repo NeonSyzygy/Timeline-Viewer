@@ -1,0 +1,84 @@
+{
+  "title": "Ancient Mediterranean – Example Timeline",
+  "columns": ["Rome", "Greece", "Persia"],
+  "events": [
+    {
+      "name": "Rome Founded",
+      "date": "753 BC",
+      "column": "Rome",
+      "content": "Traditional founding by Romulus"
+    },
+    {
+      "name": "Roman Republic",
+      "date": "509 BC",
+      "column": "Rome",
+      "content": "Monarchy overthrown, republic established",
+      "prior": ["Rome Founded"]
+    },
+    {
+      "name": "Athenian Democracy",
+      "date": "508 BC",
+      "column": "Greece",
+      "content": "Cleisthenes reforms",
+      "contemporary": ["Roman Republic"]
+    },
+    {
+      "name": "Persian Invasion",
+      "date": "492 BC",
+      "column": "Persia",
+      "content": "Darius I moves against Greece",
+      "prior": ["Athenian Democracy"],
+      "linkedFollowing": ["Battle of Marathon"]
+    },
+    {
+      "name": "Battle of Marathon",
+      "date": "490 BC",
+      "column": "Greece",
+      "content": "<a href='https://en.wikipedia.org/wiki/Battle_of_Marathon'>Wikipedia</a>"
+    },
+    {
+      "name": "Xerxes Invades",
+      "date": "480 BC",
+      "column": "Persia",
+      "content": "Second Persian invasion of Greece",
+      "linkedPrior": ["Persian Invasion"],
+      "linkedFollowing": ["Thermopylae"]
+    },
+    {
+      "name": "Thermopylae",
+      "date": "480 BC",
+      "column": "Greece",
+      "content": "<a href='https://en.wikipedia.org/wiki/Battle_of_Thermopylae'>Wikipedia</a>",
+      "contemporary": ["Xerxes Invades"]
+    },
+    {
+      "name": "First Punic War",
+      "date": "264 BC",
+      "column": "Rome",
+      "content": "Rome vs Carthage at sea",
+      "prior": ["Roman Republic"]
+    },
+    {
+      "name": "Alexander the Great",
+      "date": "336 BC",
+      "column": "Greece",
+      "content": "Conquers Persia",
+      "prior": ["Thermopylae"],
+      "following": ["First Punic War"]
+    },
+    {
+      "name": "Fall of Persia",
+      "date": "330 BC",
+      "column": "Persia",
+      "content": "Achaemenid Empire ends",
+      "linkedPrior": ["Alexander the Great"]
+    },
+    {
+      "name": "Second Punic War",
+      "date": "218 BC",
+      "column": "Rome",
+      "content": "<a href='https://en.wikipedia.org/wiki/Second_Punic_War'>Hannibal crosses the Alps</a>",
+      "linkedPrior": ["First Punic War"]
+    }
+  ]
+}
