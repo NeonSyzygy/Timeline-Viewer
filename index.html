@@ -222,11 +222,17 @@ function render(res){
 // ══════════════════════════════════════════════
 
 var src=new URLSearchParams(location.search).get('src');
-if(!src){document.body.style.cssText='display:flex;align-items:center;justify-content:center';document.body.innerHTML='<p style="color:#888">Add ?src=file.json to the URL</p>';}
-else fetch(src).then(function(r){return r.json();}).then(function(data){
-  if(data.title)document.title=data.title;
-  var res=buildLayout(data);
-  if(res)render(res);
+if(!src){ // Check for a content file argument, and if there is none, point to the exmaple content file.
+	src = "example-timeline.json";
+}
+
+fetch(src)
+.then(function(r){return r.json();})
+.then(function(data) {
+	if(data.title)
+		document.title=data.title;
+	var res=buildLayout(data);
+	if(res)render(res);
 });
 
 })();
