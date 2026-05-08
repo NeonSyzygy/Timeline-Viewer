@@ -16,13 +16,15 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:sans-serif;background
 </style>
 </head>
 <body>
-<div id="vp"><div id="c">
-  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
-    <defs><marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-      <path d="M0,0 L10,3.5 L0,7" fill="#666"/>
-    </marker></defs>
-  </svg>
-</div></div>
+<div id="vp">
+	<div id="c">
+		<svg id="svg" xmlns="http://www.w3.org/2000/svg">
+			<defs><marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+			<path d="M0,0 L10,3.5 L0,7" fill="#666"/>
+			</marker></defs>
+		</svg>
+	</div>
+</div>
 <script>
 (function(){
 'use strict';
@@ -221,21 +223,63 @@ function render(res){
 //  INIT: load ?src= content file
 // ══════════════════════════════════════════════
 
-var src=new URLSearchParams(location.search).get('src');
-if(!src){ // Check for a content file argument, and if there is none, point to the exmaple content file.
-	src = "example-timeline.json";
+function checkForContent() { // Check for a content file argument, and if there is none, get the inline example json.
+  var content = new URLSearchParams(location.search).get('content'); // Get the content parameter.
+  if (!content) { // if the parameter is missing, load the exmaple timeline.
+    const exampleJSON = document.getElementById("example-timeline"); // Store the contents of the inline example <JSON> element as a string.
+    return JSON.parse(exampleJSON.textContent); // Convert the string to a JSON object and return it.
+  }
+  else { // if the content parameter exists, fetch it, then convert it to a JSON object and return it.
+    return fetch(content).then(function(r){return r.json();})
+  }
 }
 
-fetch(src)
-.then(function(r){return r.json();})
-.then(function(data) {
-	if(data.title)
-		document.title=data.title;
-	var res=buildLayout(data);
-	if(res)render(res);
+checkForContent().then(function(data) {
+  if(data.title)
+    document.title=data.title;
+  var res=buildLayout(data);
+  if(res)render(res);
 });
 
 })();
+</script>
+<script id="example-timeline" type="application/json">
+{
+  "title": "Example Timeline - How To Use Timeline Viewer",
+  "columns": ["Column 1", "Column 2", "Column 3"],
+  "events": [
+    {
+      "name": "This Is An Event",
+      "date": "05/08/2026",
+      "column": "Column 1",
+      "content": "Events can have a date, belong to a column, and have a text body."
+    },
+    {
+      "name": "Related Events",
+      "column": "Column 1",
+      "content": "Events can be followed by or preceded by other events.",
+      "linkedprior": ["This Is An Event"]
+    },
+    {
+      "name": "Optional Fields",
+      "column": "Column 1",
+      "content": "All event fields other than the event name are optional.",
+	  "linkedprior": ["Related Events"]
+    },
+    {
+      "name": "Event Constriants",
+      "column": "Column 2",
+      "content": "Events can also have constraints without needing to be in the same column or to be linked with arrows.",
+      "prior": ["This Is An Event"],
+    },
+    {
+      "name": "Contemporary Events",
+      "column": "Column 2",
+      "content": "Events can also be contemporary with each other, or in other words happen at the same time."
+	  "contemporary": ["Optional Fields"]
+    }
+  ]
+}
 </script>
 </body>
 </html>
