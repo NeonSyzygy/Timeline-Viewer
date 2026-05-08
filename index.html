@@ -227,7 +227,7 @@ function checkForContent() { // Check for a content file argument, and if there 
   var content = new URLSearchParams(location.search).get('content'); // Get the content parameter.
   if (!content) { // if the parameter is missing, load the exmaple timeline.
     const exampleJSON = document.getElementById("example-timeline"); // Store the contents of the inline example <JSON> element as a string.
-    return JSON.parse(exampleJSON.textContent); // Convert the string to a JSON object and return it.
+    return Promise.resolve(JSON.parse(exampleJSON.textContent)); // Convert the string to a JSON object, make it a promise, and return it.
   }
   else { // if the content parameter exists, fetch it, then convert it to a JSON object and return it.
     return fetch(content).then(function(r){return r.json();})
