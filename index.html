@@ -25,6 +25,64 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:sans-serif;background
 		</svg>
 	</div>
 </div>
+<script id="example-timeline" type="application/json">
+{
+  "title": "Example Timeline - How To Use Timeline Viewer",
+  "columns": ["Column 1", "Column 2", "Column 3", "Column 4"],
+  "events": [
+    {
+      "name": "This Is An Event",
+      "date": "05/08/2026",
+      "column": "Column 1",
+      "content": "Events can have a date, belong to a column, a text body, and a variety of constraints."
+    },
+    {
+      "name": "Related Events",
+      "column": "Column 1",
+      "content": "Events can be followed by or preceded by other events.<br>(This event declares that \"This Is An Event\" is prior to it, and they are linked.)",
+	  "linkedPrior": ["This Is An Event"]
+    },
+    {
+      "name": "Optional Fields",
+      "column": "Column 1",
+      "content": "All event fields other than the event name are optional.",
+	  "prior": ["Related Events"]
+    },
+    {
+      "name": "Event Constriants",
+      "column": "Column 2",
+      "content": "Events can also have constraints without needing to be in the same column or to be linked with arrows.<br>(This event specifies that \"This Is An Event\" is prior to it, and that \"Related Events\" follows it.)",
+	  "prior": ["This Is An Event"],
+	  "following": ["Related Events"]
+    },
+    {
+      "name": "Contemporary Events",
+      "column": "Column 4",
+      "content": "Events can also be contemporary with each other, or in other words happen at the same time.<br>(This event declares that it is contemporary with \"Event Constriants\".)",
+	  "contemporary": ["Event Constriants"]
+    },
+    {
+      "name": "Hyperlinks",
+      "column": "Column 3",
+      "content": "An event's body text can contain <a href='https://en.wikipedia.org/wiki/Hyperlink'>Hyperlinks</a>"
+    },
+    {
+      "name": "Multiple Constraints",
+      "column": "Column 4",
+      "content": "An event can have more than one of the same type of constraint, and it will try to respect them all.<br>(This event declares that \"Event Constriants\" and \"This Is An Event\" are prior to it.)",
+	  "linkedPrior": ["Event Constriants"],
+	  "prior": ["Event Constriants"],
+	  "prior": ["This Is An Event"]
+    },
+    {
+      "name": "Complex Links",
+      "column": "Column 2",
+      "content": "An event can also be linked to across columns.<br>(This event declares that \"Related Events\" is prior to it, and they are linked.",
+	  "linkedPrior": ["Related Events"]
+    }
+  ]
+}
+</script>
 <script>
 (function(){
 'use strict';
@@ -242,44 +300,6 @@ checkForContent().then(function(data) {
 });
 
 })();
-</script>
-<script id="example-timeline" type="application/json">
-{
-  "title": "Example Timeline - How To Use Timeline Viewer",
-  "columns": ["Column 1", "Column 2", "Column 3"],
-  "events": [
-    {
-      "name": "This Is An Event",
-      "date": "05/08/2026",
-      "column": "Column 1",
-      "content": "Events can have a date, belong to a column, and have a text body."
-    },
-    {
-      "name": "Related Events",
-      "column": "Column 1",
-      "content": "Events can be followed by or preceded by other events.",
-      "linkedprior": ["This Is An Event"]
-    },
-    {
-      "name": "Optional Fields",
-      "column": "Column 1",
-      "content": "All event fields other than the event name are optional.",
-	  "linkedprior": ["Related Events"]
-    },
-    {
-      "name": "Event Constriants",
-      "column": "Column 2",
-      "content": "Events can also have constraints without needing to be in the same column or to be linked with arrows.",
-      "prior": ["This Is An Event"],
-    },
-    {
-      "name": "Contemporary Events",
-      "column": "Column 2",
-      "content": "Events can also be contemporary with each other, or in other words happen at the same time."
-	  "contemporary": ["Optional Fields"]
-    }
-  ]
-}
 </script>
 </body>
 </html>
