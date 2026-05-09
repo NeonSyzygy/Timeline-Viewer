@@ -183,15 +183,6 @@ button {
     <div id="eventList" class="event-list"></div>
   </div>
 </div>
-<div id="vp">
-  <div id="cOld">
-    <svg id="svgOld" xmlns="http://www.w3.org/2000/svg">
-      <defs><marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-      <path d="M0,0 L10,3.5 L0,7" fill="#666"/>
-      </marker></defs>
-    </svg>
-  </div>
-</div>
 <script id="example-timeline" type="application/json">
 {
   "title": "Example Timeline - How To Use Timeline Viewer",
@@ -250,7 +241,7 @@ button {
   ]
 }
 </script>
-<script>
+<script id="timeline">
 (function(){
 'use strict';
 
@@ -467,6 +458,8 @@ checkForContent().then(function(data) {
 });
 
 })();
+</script>
+<script id="editor">
 </script>
 </body>
 </html>
