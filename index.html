@@ -26,17 +26,16 @@
        TOP MENU BAR
        ============================================================ */
 
-    header.timeline-top-bar {
+    .timeline-top-bar {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      background: #222;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 0.5rem;
+      background: #111;
       border-bottom: 1px solid #333;
-      flex-shrink: 0;
+      color: #eee;
     }
-
-    .timeline-top-bar-spacer { flex: 1; }
 
     .timeline-top-bar-button {
       padding: 0.35rem 0.75rem;
@@ -50,6 +49,49 @@
 
     .timeline-top-bar-button:hover {
       background: #444;
+    }
+    
+    .topbar-left {
+      flex: 0 0 auto;
+      font-weight: bold;
+      padding-right: 0.5rem;
+    }
+    
+    .topbar-scroll-buttons {
+      flex: 1 1 auto;
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      gap: 0.5rem;
+      padding: 0 0.5rem;
+      scrollbar-width: none; /* Firefox */  
+    }
+    
+    .topbar-scroll-buttons button:first-child {
+      margin-left: auto;
+    }
+    
+    .topbar-scroll-buttons::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+    
+    .topbar-scroll-buttons button {
+      flex: 0 0 auto;
+      padding: 0.3rem 0.6rem;
+      background: #222;
+      border: 1px solid #444;
+      color: #eee;
+      border-radius: 4px;
+    }
+    
+    .topbar-settings-button {
+      flex: 0 0 auto;
+      padding: 0.3rem 0.6rem;
+      background: #222;
+      border: 1px solid #444;
+      color: #eee;
+      border-radius: 4px;
     }
 
     /* ============================================================
@@ -324,15 +366,20 @@
        TOP MENU BAR
        ============================================================ -->
   <header class="timeline-top-bar">
-    <h1 style="margin:0; font-size:1rem; color:#ccc;">Timeline Viewer</h1>
-
-    <div class="timeline-top-bar-spacer"></div>
-
-    <button class="timeline-top-bar-button" id="timeline-button-load-file">Load File</button>
-    <button class="timeline-top-bar-button" id="timeline-button-save-file">Save Timeline</button>
-    <button class="timeline-top-bar-button" id="timeline-button-add-event">Add Event</button>
-    <button class="timeline-top-bar-button" id="timeline-button-delete-selected-event">Delete Selected Event</button>
+  
+    <div class="topbar-left">
+      <h1 style="margin:0; font-size:1rem; color:#ccc;">Timeline Viewer</h1>
+    </div>
+    
+    <div class="topbar-scroll-buttons">
+      <button class="timeline-top-bar-button" id="timeline-button-load-file">Load File</button>
+      <button class="timeline-top-bar-button" id="timeline-button-save-file">Save Timeline</button>
+      <button class="timeline-top-bar-button" id="timeline-button-add-event">Add Event</button>
+      <button class="timeline-top-bar-button" id="timeline-button-delete-selected-event">Delete Selected Event</button>
+    </div>
+    
     <button class="timeline-top-bar-button" id="timeline-button-open-settings">Settings</button>
+    
   </header>
 
   <!-- ============================================================
@@ -485,7 +532,7 @@
   
   <div id="settings-backdrop" class="settings-backdrop"></div>
   
-  <script>
+  <script> // UI Controls
     document.addEventListener("DOMContentLoaded", () => {
     
       // Buttons
@@ -526,9 +573,19 @@
       window.hideSidebar = () => document.body.classList.add("sidebar-hidden");
 
     });
+    
+    // Make top bar scroll horizontally
+    const scrollArea = document.querySelector('.topbar-scroll-buttons');
+    
+    scrollArea.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        scrollArea.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
   </script>
   
-  <script>
+  <script> // Pan and Zoom
   document.addEventListener("DOMContentLoaded", () => {
 
     const viewport = document.querySelector(".timeline-visual-viewport");
