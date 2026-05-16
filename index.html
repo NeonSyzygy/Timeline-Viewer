@@ -67,32 +67,54 @@
     }
 
     /* ============================================================
-       SIDEBAR PANEL
+       OVERLAY SIDEBAR (INSTANT SHOW/HIDE)
        ============================================================ */
 
-    section.timeline-event-editor-panel {
-      display: flex;
-      flex-direction: column;
+    /* Sidebar floats above the map on the right */
+    .timeline-event-editor-panel {
+      position: absolute;
+      top: 48px; /* height of top bar */
+      right: 0;
       width: 320px;
-      max-width: 40vw;
+      height: calc(100vh - 48px);
       background: #181818;
       border-left: 1px solid #333;
-      padding: 0.75rem;
-      overflow-y: auto; /* sidebar scrolls internally */
+      overflow-y: auto;
       overflow-x: hidden;
-      flex-shrink: 0;
+      transform: translateX(0); /* visible */
+      z-index: 10;
+    }
+    
+    /* Hidden state (desktop) */
+    body.sidebar-hidden .timeline-event-editor-panel {
+      transform: translateX(100%); /* instantly off-screen */
+    }
+    
+    /* Timeline map becomes full-screen behind the sidebar */
+    .timeline-visual-viewport {
+      position: absolute;
+      top: 48px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: auto;
+      z-index: 1;
+    }
+    
+    /* ============================================================
+       SIDEBAR LEFT/RIGHT TOGGLE
+       ============================================================ */
+
+    body.sidebar-left .timeline-event-editor-panel {
+      right: auto;
+      left: 0;
+      border-left: none;
+      border-right: 1px solid #333;
     }
 
     /* ============================================================
        TIMELINE VIEWPORT
        ============================================================ */
-
-    section.timeline-visual-viewport {
-      flex: 1;
-      position: relative;
-      overflow: auto; /* timeline scrolls internally */
-      background: #050505;
-    }
 
     .timeline-visual-viewport-placeholder {
       position: absolute;
@@ -172,22 +194,94 @@
        ============================================================ */
 
     @media (max-width: 900px), (max-aspect-ratio: 3/4) {
-
-      main.timeline-layout-root {
-        flex-direction: column;
-      }
-
-      section.timeline-event-editor-panel {
+    
+      /* Sidebar floats above the map, full width */
+      .timeline-event-editor-panel {
+        top: 48px;
+        left: 0;
+        right: 0;
         width: 100%;
-        max-width: none;
-        height: 45%;        /* Sidebar takes upper portion */
+        height: 45%;
         border-left: none;
         border-bottom: 1px solid #333;
+        transform: translateY(0); /* visible */
       }
+    
+      /* Hidden state (mobile) */
+      body.sidebar-hidden .timeline-event-editor-panel {
+        transform: translateY(-100%); /* instantly off-screen upward */
+      }
+    
+      /* Timeline map fills the entire screen below the top bar */
+      .timeline-visual-viewport {
+        top: 48px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    }
+    
+    /* ============================================================
+       SETTINGS PANEL (OVERLAY)
+       ============================================================ */
 
-      section.timeline-visual-viewport {
-        height: 55%;        /* Timeline always visible */
-      }
+    .settings-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 300px;
+      max-width: 90vw;
+      background: #222;
+      border: 1px solid #333;
+      padding: 1rem;
+      color: #eee;
+      transform: translate(-50%, -50%) scale(0.95);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+    
+    /* When open */
+    body.settings-open .settings-panel {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .settings-title {
+      margin-top: 0;
+      font-size: 1.1rem;
+      color: #ccc;
+    }
+    
+    .settings-label {
+      display: block;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    
+    .settings-close-button {
+      margin-top: 1rem;
+      padding: 0.4rem 0.8rem;
+      background: #333;
+      border: 1px solid #444;
+      color: #eee;
+      cursor: pointer;
+    }
+    
+    /* Optional backdrop */
+    .settings-backdrop {
+      position: absolute;
+      inset: 48px 0 0 0;
+      background: rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    body.settings-open .settings-backdrop {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     /* ============================================================
@@ -361,14 +455,204 @@
     <!-- ============================================================
          TIMELINE VIEWPORT
          ============================================================ -->
+    
     <section class="timeline-visual-viewport">
-      <div class="timeline-visual-viewport-placeholder">
-        Timeline map placeholder<br>
-        (Pan + zoom area)
+      <div id="timeline-panzoom-container" style="position: absolute; transform-origin: 0 0;">
+        <div style="color:#555; padding:2rem; font-size:1.2rem;">
+          Timeline map placeholder<br>
+          (Pan + zoom area)
+        </div>
       </div>
     </section>
 
   </main>
+  
+  <!-- ============================================================
+     SETTINGS PANEL (OVERLAY)
+     ============================================================ -->
+  <div id="settings-panel" class="settings-panel">
+    <h2 class="settings-title">Settings</h2>
+
+    <label class="settings-label">
+      <input type="checkbox" id="setting-sidebar-left">
+      Sidebar on left side
+    </label>
+
+    <button id="settings-close-button" class="settings-close-button">
+      Close Settings
+    </button>
+  </div>
+  
+  <div id="settings-backdrop" class="settings-backdrop"></div>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+    
+      // Buttons
+      const settingsButton = document.getElementById("timeline-button-open-settings");
+      const settingsPanel = document.getElementById("settings-panel");
+      const settingsBackdrop = document.getElementById("settings-backdrop");
+      const settingsClose = document.getElementById("settings-close-button");
+      
+      const sidebarLeftCheckbox = document.getElementById("setting-sidebar-left");
+      
+      // === SETTINGS PANEL OPEN/CLOSE ===
+      
+      settingsButton.addEventListener("click", () => {
+        document.body.classList.add("settings-open");
+      });
+      
+      settingsClose.addEventListener("click", () => {
+        document.body.classList.remove("settings-open");
+      });
+      
+      settingsBackdrop.addEventListener("click", () => {
+        document.body.classList.remove("settings-open");
+      });
+      
+      // === SIDEBAR LEFT/RIGHT SETTING ===
+      
+      sidebarLeftCheckbox.addEventListener("change", () => {
+        if (sidebarLeftCheckbox.checked) {
+          document.body.classList.add("sidebar-left");
+        } else {
+          document.body.classList.remove("sidebar-left");
+        }
+      });
+      
+      // === SIDEBAR SHOW/HIDE ===
+      // You will later call these from your timeline logic:
+      window.showSidebar = () => document.body.classList.remove("sidebar-hidden");
+      window.hideSidebar = () => document.body.classList.add("sidebar-hidden");
+
+    });
+  </script>
+  
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const viewport = document.querySelector(".timeline-visual-viewport");
+    const content = document.getElementById("timeline-panzoom-container");
+  
+    // Current transform state
+    let scale = 1;
+    let originX = 0;
+    let originY = 0;
+  
+    // Drag state
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+  
+    // Apply transform
+    function updateTransform() {
+      content.style.transform =
+        `translate(${originX}px, ${originY}px) scale(${scale})`;
+    }
+  
+    // === DESKTOP DRAG PAN ===
+    viewport.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+  
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      originX += dx;
+      originY += dy;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      updateTransform();
+    });
+  
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+  
+    // === DESKTOP WHEEL ZOOM ===
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+  
+      const zoomFactor = 1.1;
+      const mouseX = e.clientX - viewport.getBoundingClientRect().left;
+      const mouseY = e.clientY - viewport.getBoundingClientRect().top;
+  
+      const oldScale = scale;
+      scale *= e.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+  
+      // Keep zoom centered on cursor
+      originX = mouseX - (mouseX - originX) * (scale / oldScale);
+      originY = mouseY - (mouseY - originY) * (scale / oldScale);
+  
+      updateTransform();
+    }, { passive: false });
+  
+    // === MOBILE TOUCH PAN + PINCH ZOOM ===
+    let touchMode = false;
+    let lastTouchDist = 0;
+  
+    function getTouchDist(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx*dx + dy*dy);
+    }
+  
+    viewport.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        // Single finger drag
+        touchMode = "drag";
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        // Pinch zoom
+        touchMode = "pinch";
+        lastTouchDist = getTouchDist(e.touches);
+      }
+    });
+  
+    viewport.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+  
+      if (touchMode === "drag" && e.touches.length === 1) {
+        const dx = e.touches[0].clientX - lastX;
+        const dy = e.touches[0].clientY - lastY;
+        originX += dx;
+        originY += dy;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+        updateTransform();
+      }
+  
+      if (touchMode === "pinch" && e.touches.length === 2) {
+        const newDist = getTouchDist(e.touches);
+        const zoomFactor = newDist / lastTouchDist;
+        lastTouchDist = newDist;
+  
+        const oldScale = scale;
+        scale *= zoomFactor;
+  
+        // Zoom around midpoint
+        const rect = viewport.getBoundingClientRect();
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+  
+        originX = midX - (midX - originX) * (scale / oldScale);
+        originY = midY - (midY - originY) * (scale / oldScale);
+  
+        updateTransform();
+      }
+    }, { passive: false });
+  
+    viewport.addEventListener("touchend", () => {
+      touchMode = false;
+    });
+  
+  });
+</script>
+
 
 </body>
 </html>
