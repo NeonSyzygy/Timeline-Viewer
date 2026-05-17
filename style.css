@@ -1,0 +1,350 @@
+/* ============================================================
+   GLOBAL + RESET
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* CRITICAL: body never scrolls */
+  background: #111;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+}
+
+/* ============================================================
+   TOP MENU BAR
+   ============================================================ */
+
+.timeline-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 0.5rem;
+  background: #111;
+  border-bottom: 1px solid #333;
+  color: #eee;
+}
+
+.timeline-top-bar-button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 3px;
+  border: 1px solid #444;
+  background: #333;
+  color: #eee;
+  cursor: pointer;
+}
+
+.timeline-top-bar-button:hover {
+  background: #444;
+}
+
+.topbar-left {
+  flex: 0 0 auto;
+  font-weight: bold;
+  padding-right: 0.5rem;
+}
+
+.topbar-scroll-buttons {
+  flex: 1 1 auto;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  scrollbar-width: none; /* Firefox */  
+}
+
+.topbar-scroll-buttons button:first-child {
+  margin-left: auto;
+}
+
+.topbar-scroll-buttons::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.topbar-scroll-buttons button {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  background: #222;
+  border: 1px solid #444;
+  color: #eee;
+  border-radius: 4px;
+}
+
+.topbar-settings-button {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  background: #222;
+  border: 1px solid #444;
+  color: #eee;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   MAIN LAYOUT ROOT
+   Desktop: timeline left, sidebar right
+   Mobile: sidebar top, timeline bottom
+   ============================================================ */
+
+main.timeline-layout-root {
+  display: flex;
+  flex-direction: row-reverse; /* row | row-reverse */
+  height: calc(100vh - 48px); /* full height minus top bar */
+  width: 100%;
+  overflow: hidden; /* prevent body scroll */
+}
+
+/* ============================================================
+   OVERLAY SIDEBAR (INSTANT SHOW/HIDE)
+   ============================================================ */
+
+/* Sidebar floats above the map on the right */
+.timeline-event-editor-panel {
+  position: absolute;
+  top: 48px; /* height of top bar */
+  right: 0;
+  width: 320px;
+  height: calc(100vh - 48px);
+  background: #181818;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform: translateX(0); /* visible */
+  z-index: 10;
+}
+
+/* Hidden state (desktop) */
+body.sidebar-hidden .timeline-event-editor-panel {
+  transform: translateX(100%); /* instantly off-screen */
+}
+
+/* Timeline map becomes full-screen behind the sidebar */
+.timeline-visual-viewport {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  z-index: 1;
+}
+
+/* ============================================================
+   SIDEBAR LEFT/RIGHT TOGGLE
+   ============================================================ */
+
+body.sidebar-left .timeline-event-editor-panel {
+  right: auto;
+  left: 0;
+  border-left: none;
+  border-right: 1px solid #333;
+}
+
+/* ============================================================
+   TIMELINE VIEWPORT
+   ============================================================ */
+
+.timeline-visual-viewport-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+
+form.timeline-event-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timeline-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-field-label {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.timeline-text-input,
+.timeline-select-input,
+.timeline-multiline-input {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
+  border-radius: 3px;
+  border: 1px solid #444;
+  background: #111;
+  color: #eee;
+}
+
+.timeline-multiline-input {
+  min-height: 3rem;
+  resize: vertical;
+}
+
+.timeline-scroll-list {
+  min-height: 5rem;
+}
+
+.timeline-small-helper-text {
+  font-size: 0.7rem;
+  color: #777;
+}
+
+.timeline-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ccc;
+  margin: 0.25rem 0;
+}
+
+.timeline-horizontal-divider {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 0.5rem 0;
+}
+
+/* ============================================================
+   RESPONSIVE MODE (MOBILE / NARROW)
+   Sidebar becomes top panel, fixed height
+   Timeline always visible at bottom
+   ============================================================ */
+
+@media (max-width: 900px), (max-aspect-ratio: 3/4) {
+
+  /* Sidebar floats above the map, full width */
+  .timeline-event-editor-panel {
+    top: 48px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 45%;
+    border-left: none;
+    border-bottom: 1px solid #333;
+    transform: translateY(0); /* visible */
+  }
+
+  /* Hidden state (mobile) */
+  body.sidebar-hidden .timeline-event-editor-panel {
+    transform: translateY(-100%); /* instantly off-screen upward */
+  }
+
+  /* Timeline map fills the entire screen below the top bar */
+  .timeline-visual-viewport {
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
+    
+/* ============================================================
+   SETTINGS PANEL (OVERLAY)
+   ============================================================ */
+
+.settings-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  max-width: 90vw;
+  background: #222;
+  border: 1px solid #333;
+  padding: 1rem;
+  color: #eee;
+  transform: translate(-50%, -50%) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* When open */
+body.settings-open .settings-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.settings-title {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: #ccc;
+}
+
+.settings-label {
+  display: block;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.settings-close-button {
+  margin-top: 1rem;
+  padding: 0.4rem 0.8rem;
+  background: #333;
+  border: 1px solid #444;
+  color: #eee;
+  cursor: pointer;
+}
+
+/* Optional backdrop */
+.settings-backdrop {
+  position: absolute;
+  inset: 48px 0 0 0;
+  background: rgba(0,0,0,0.4);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+
+body.settings-open .settings-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================
+   Scrollbar styling for WebKit browsers
+   ============================================================ */
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #111;       /* track background */
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #444;       /* draggable part */
+  border-radius: 5px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* ============================================================
+   Scrollbar styling for Firefox
+   ============================================================ */
+
+* {
+  scrollbar-width: thin;          /* auto | thin | none */
+  scrollbar-color: #444 #111;     /* thumb | track */
+}
