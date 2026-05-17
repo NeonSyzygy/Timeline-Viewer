@@ -162,7 +162,7 @@ body.sidebar-left .timeline-event-editor-panel {
 }
 
 /* ============================================================
-   FORM ELEMENTS
+   SIDEBAR FORM ELEMENTS
    ============================================================ */
 
 form.timeline-event-editor-form {
@@ -197,10 +197,6 @@ form.timeline-event-editor-form {
 .timeline-multiline-input {
   min-height: 3rem;
   resize: vertical;
-}
-
-.timeline-scroll-list {
-  min-height: 5rem;
 }
 
 .timeline-small-helper-text {
