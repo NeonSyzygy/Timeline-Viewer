@@ -48,7 +48,7 @@
       <form class="timeline-event-editor-form" autocomplete="off">
 
         <!-- Selected Event -->
-        <div class="timeline-field-group">
+        <div class="sidebar-section">
           <div class="timeline-section-title">Selected Event</div>
 
           <label class="timeline-field-label" for="timeline-selected-event-name-input">
@@ -60,7 +60,7 @@
                  placeholder="Event ID / canonical name">
         </div>
 
-        <div class="timeline-field-group">
+        <div class="sidebar-section">
           <label class="timeline-field-label" for="timeline-selected-event-visual-override-input">
             Visual override (display name)
           </label>
@@ -72,16 +72,19 @@
         <hr class="timeline-horizontal-divider">
 
         <!-- Placement -->
-        <div class="timeline-field-group">
+        <div class="sidebar-section">
           <div class="timeline-section-title">Placement</div>
-
+          
+          <!-- Sub-timeline list -->
           <label class="timeline-field-label" for="timeline-selected-event-sub-timeline-input">
             Sub-timeline
           </label>
-          <input id="timeline-selected-event-sub-timeline-input"
-                 class="timeline-text-input"
-                 type="text"
-                 placeholder="Sub-timeline name">
+          <select id="subtimeline-select" class="timeline-select-input">
+            <option value="__all__">All sub-timelines</option>
+            <option>Example Sub-timeline 1</option>
+            <option>Example Sub-timeline 2</option>
+          </select>
+          <input id="subtimeline-rename-input" class="timeline-select-input" style="display:none;">
 
           <label class="timeline-field-label" for="timeline-selected-event-column-input">
             Column
@@ -95,7 +98,7 @@
         <hr class="timeline-horizontal-divider">
 
         <!-- Groups -->
-        <div class="timeline-field-group">
+        <div class="sidebar-section sidebar-mode-event">
           <div class="timeline-section-title">Groups</div>
           <textarea id="timeline-selected-event-groups-input"
                     class="timeline-multiline-input"
@@ -105,7 +108,7 @@
         <hr class="timeline-horizontal-divider">
 
         <!-- Relationships -->
-        <div class="timeline-field-group">
+        <div class="sidebar-section">
           <div class="timeline-section-title">Relationships</div>
 
           <label class="timeline-field-label">Prior events</label>
@@ -124,32 +127,6 @@
           <textarea class="timeline-multiline-input"
                     placeholder="Events visually linked"></textarea>
         </div>
-
-        <hr class="timeline-horizontal-divider">
-
-        <!-- Sub-timeline list -->
-        <div class="timeline-field-group">
-          <div class="timeline-section-title">Sub-timelines</div>
-          <select id="subtimeline-select" class="timeline-select-input">
-            <option value="__all__">All sub-timelines</option>
-            <option>Example Sub-timeline 1</option>
-            <option>Example Sub-timeline 2</option>
-          </select>
-          <input id="subtimeline-rename-input" class="timeline-select-input" style="display:none;">
-        </div>
-
-        <hr class="timeline-horizontal-divider">
-
-        <!-- Event list -->
-        <div class="timeline-field-group">
-          <div class="timeline-section-title">Events</div>
-          <select class="timeline-select-input">
-            <option>Example Event 1</option>
-            <option>Example Event 2</option>
-            <option>Example Event 3</option>
-          </select>
-        </div>
-
       </form>
     </section>
 

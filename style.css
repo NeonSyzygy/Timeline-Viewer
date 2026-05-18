@@ -171,7 +171,7 @@ form.timeline-event-editor-form {
   gap: 0.25rem;
 }
 
-.timeline-field-group {
+.sidebar-section {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -215,6 +215,26 @@ form.timeline-event-editor-form {
   border: none;
   border-top: 1px solid #333;
   margin: 0.5rem 0;
+}
+
+/* ============================================================
+   Sidebar Event/Subtimeline Switching
+   ============================================================ */
+
+/* Hide both by default */
+.sidebar-mode-event,
+.sidebar-mode-subtimeline {
+    /* display: none; */
+}
+
+/* When editing an event */
+body.event-selected .sidebar-mode-event {
+    display: block;
+}
+
+/* When editing a subtimeline */
+body.subtimeline-selected .sidebar-mode-subtimeline {
+    display: block;
 }
 
 /* ============================================================
