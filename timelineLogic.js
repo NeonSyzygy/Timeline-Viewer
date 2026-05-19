@@ -1,6 +1,6 @@
 // Saving and loading the json
     
-let timelineData = null;
+let timelineData = null; //timelineData is always the JSON text representation of the chart
     
 document.getElementById("timeline-button-load-file").addEventListener("click", handleLoadTimeline);
 
@@ -19,7 +19,9 @@ function handleLoadTimeline() {
         
     try {
       timelineData = JSON.parse(text); // timelineData becomes the raw JSON from the file
-          
+      
+      flattenData(timelineData);
+      
       // renderTimeline(timelineData);
     } catch (err) {
       alert("Invalid JSON file.");
@@ -30,7 +32,7 @@ function handleLoadTimeline() {
   input.click();
 }
 
-function handleSaveTimeline() {
+function handleSaveTimeline() { // Saves the current state of timelineData to a file
   if (!timelineData) {
     alert("No timeline loaded.");
     return;
@@ -46,4 +48,8 @@ function handleSaveTimeline() {
   a.click();
   
   URL.revokeObjectURL(url);
+}
+
+function flattenData(data) {
+  
 }
