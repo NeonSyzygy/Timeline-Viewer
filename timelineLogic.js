@@ -52,23 +52,29 @@ function handleSaveTimeline() { // Saves the current state of timelineData to a 
 
 function buildTimeline() { // Run this any time timelineData has changes that you want to show.
   flattenData(timelineData);
+  for (const timeline of flatTimelines) {
+    syncData(getById(timleine.id);
+  }
+  for (const event of flatEvents) {
+    syncData(getById(event.id);
+  }
 }
 
 function flattenData(data) {
   flatEvents = [];
   flatTimelines = [];
   
-  parseData(data, flatEvents, flatTimelines, "timelineData");
+  flatRecurse(data, flatEvents, flatTimelines, "timelineData");
 }
 
-parseData(node, eventsList, timelinesList, pathString) {
+flatRecurse(node, eventsList, timelinesList, pathString) {
   timelinesList.push({ id: node.id, path: pathString });
   
   if (!Array.isArray(node.timelines)) { // Logs an error if node.timelines is not a valid array.
     console.warn(`[TimelineParser] "timelines" missing or invalid at node "${node.id}". Treating as empty.`);
   }
   for (let i = 0; i < (Array.isArray(node.timelines) ? node.timelines : []).length; i++) {
-    parseData(timeline, eventsList, timelinesList, pathString + ".timelines[" + i + "]");
+    flatRecurse(timeline, eventsList, timelinesList, pathString + ".timelines[" + i + "]");
   }
   
   if (!Array.isArray(node.events)) { // Logs an error if node.events is not a valid array.
@@ -81,11 +87,60 @@ parseData(node, eventsList, timelinesList, pathString) {
   return { data, flatEvents, flatTimelines };
 }
 
-function getById(id) { // This always returns the first matching ID, and treats timelines as higher priorety than events. Additionla matching ID obejcts will be invisible.
+function getById(id) { // This always returns the first timelineData object matching the ID, and treats timelines as higher priorety than events. Additional matching ID obejcts will be invisible.
   let entry = flatTimelines.find(x => x.id === id);
   if (entry) return eval(entry.path);
   entry = flatEvents.find(x => x.id === id);
   if (entry) return eval(entry.path);
   return null;
+}
+
+function syncData(node) {
+  // Check to make sure node actually has fields
+  if (!Array.isArray(node.prior)) {
+    node.prior = [];
+  }
+  if (!Array.isArray(node.follower)) {
+    node.follower = [];
+  }
+  if (!Array.isArray(node.contemporary)) {
+    node.contemporary = [];
+  }
+  
+  // Check priors and assign follower
+  for (const prior of node.prior) {
+    const target = getById(prior);
+    if (!target) continue;
+    if (!Array.isArray(target.follower)) {
+      target.follower = [];
+    }
+    if (!target.follower.includes(node.id)) {
+      target.follower.push(node.id);
+    }
+  }
+  
+  // Check follower and assign prior
+  for (const follower of node.follower) {
+    const target = getById(follower);
+    if (!target) continue;
+    if (!Array.isArray(target.prior)) {
+      target.prior = [];
+    }
+    if (!target.prior.includes(node.id)) {
+      target.prior.push(node.id);
+    }
+  }
+  
+  // Check and assign contemporary
+  for (const contemporary of node.contemporary) {
+    const target = getById(contemporary);
+    if (!target) continue;
+    if (!Array.isArray(target.contemporary)) {
+      target.contemporary = [];
+    }
+    if (!target.contemporary.includes(node.id)) {
+      target.contemporary.push(node.id);
+    }
+  }
 }
 
