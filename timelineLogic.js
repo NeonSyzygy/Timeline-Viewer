@@ -53,10 +53,10 @@ function handleSaveTimeline() { // Saves the current state of timelineData to a 
 function buildTimeline() { // Run this any time timelineData has changes that you want to show.
   flattenData(timelineData);
   for (const timeline of flatTimelines) {
-    syncData(getById(timleine.id);
+    syncData(getById(timeline.id));
   }
   for (const event of flatEvents) {
-    syncData(getById(event.id);
+    syncData(getById(event.id));
   }
 }
 
@@ -64,27 +64,25 @@ function flattenData(data) {
   flatEvents = [];
   flatTimelines = [];
   
-  flatRecurse(data, flatEvents, flatTimelines, "timelineData");
+  flatRecurse(data, "timelineData");
 }
 
-flatRecurse(node, eventsList, timelinesList, pathString) {
-  timelinesList.push({ id: node.id, path: pathString });
+function flatRecurse(node, pathString) {
+  flatTimelines.push({ id: node.id, path: pathString });
   
   if (!Array.isArray(node.timelines)) { // Logs an error if node.timelines is not a valid array.
     console.warn(`[TimelineParser] "timelines" missing or invalid at node "${node.id}". Treating as empty.`);
   }
   for (let i = 0; i < (Array.isArray(node.timelines) ? node.timelines : []).length; i++) {
-    flatRecurse(timeline, eventsList, timelinesList, pathString + ".timelines[" + i + "]");
+    flatRecurse(node.timelines[i], pathString + ".timelines[" + i + "]");
   }
   
   if (!Array.isArray(node.events)) { // Logs an error if node.events is not a valid array.
     console.warn(`[TimelineParser] "events" missing or invalid at node "${node.id}". Treating as empty.`);
   }
   for (let i = 0; i < (Array.isArray(node.events) ? node.events : []).length; i++) {
-    eventsList.push({ id: event.id, path: pathString + ".events[" + i + "]" });
+    flatEvents.push({ id: node.events[i].id, path: pathString + ".events[" + i + "]" });
   }
-  
-  return { data, flatEvents, flatTimelines };
 }
 
 function getById(id) { // This always returns the first timelineData object matching the ID, and treats timelines as higher priorety than events. Additional matching ID obejcts will be invisible.
