@@ -142,3 +142,36 @@ function syncData(node) {
   }
 }
 
+// v Organize events and timelines into a single flat grid v //
+
+// The psedocode that follows is only half thought out. Its close, but wrong. I need to group events into contemprary groups, which actually means i need to group EVENTS first and then also group THOSE groups as being contemproary with timelines. It might be useful to think of events that are contemproary but oputside a timeline as actually inside the timeline for the purposes of placing them.
+
+function drawTimeline() {
+  // For every event in flatEvents:
+    // Check if the event has already been drawn
+    // If not: call drawEvent() on it
+}
+
+function drawEvent() {
+  // Check if the event has relations
+    // If not: Put it in unconstrainedArray
+    // Else: try to draw it in the SVG
+      // If there is not room for it: Call push() to make room (See chats with Gemini)
+      // Else: Draw it
+    // Mark event as drawn, somehow
+    // call drawEvent() for all of it's relations
+}
+
+function push() {
+  // Check whether there is room to push the event
+  // if not:
+    // Call push() on the overlapping event by the amount overlapped
+  // Call push() on the event's contemproaries
+  // Check if the event's followers would no longer be valid if it moved
+  // If so: call push() by the difference
+  // Move the event
+}
+
+function drawTimelineBorder() {
+  // The start and end positions, as well as the width, of the tiemlines are defined by the virtual arrow guide input and output events that every internal column of every timelne has. These virtual events will be listed in flatEvents.
+}
