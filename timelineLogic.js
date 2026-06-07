@@ -153,17 +153,11 @@ function syncData(node) {
 
 // The psedocode that follows is only half thought out. Its close, but wrong. I need to group events into contemprary groups, which actually means i need to group EVENTS first and then also group THOSE groups as being contemproary with timelines. It might be useful to think of events that are contemproary but oputside a timeline as actually inside the timeline for the purposes of placing them.
 
-function drawAllEvents() {
-  // For every event in flatEvents:
-    // call drawEvent() on it
-}
-
 function groupContemporaries() {
   // For every event in flatEvents:
     //  If an event has contemporaries and it not already in a group:
       // Create an group entry in an object or array
       // call checkContemporaries() passing the group entry to it.
-  
 }
 
 function checkContemporaries() { // Receives a pointer to a contemporary group
@@ -178,12 +172,7 @@ function addToContemporaryGroup() { // Receives an event node and a Contemporary
   // Add ID to the contemporaryGroup object
 }
 
-function drawEvent() {
-  // read column and vertical position from flatEvents
-  // draw the event into the SVG
-}
-
-function push() {
+function pushEvent() {
   // Check whether there is room to push the event
   // if not:
     // Call push() on the overlapping event by the amount overlapped
@@ -191,4 +180,14 @@ function push() {
   // Check if the event's followers would no longer be valid if it moved
   // If so: call push() by the difference
   // Move the event
+}
+
+function drawAllEvents() {
+  // For every event in flatEvents:
+    // call drawEvent() on it
+}
+
+function drawEvent() {
+  // read column and vertical position from flatEvents
+  // draw the event into the SVG
 }
