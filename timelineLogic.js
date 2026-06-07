@@ -58,7 +58,9 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   for (const event of flatEvents) {
     syncData(getById(event.id));
   }
-  // Render all events to the SVG, save their heights to flatEvents.
+  
+  drawAllEvents(); // Render all events to the SVG, save their heights to flatEvents.
+  // Group all contemporary events into group objects, then save those groups to their own array and mark individual events in flatEvents as being members of a contemporary group.
   // Place events 1 by one into an array (Gemini chat JavaScript Object and Array Manipulation).
     // call pushEvent() if there are overlaps.
     // call reorderEvent() if events hapen to be out of order when you place a new one.
@@ -151,20 +153,34 @@ function syncData(node) {
 
 // The psedocode that follows is only half thought out. Its close, but wrong. I need to group events into contemprary groups, which actually means i need to group EVENTS first and then also group THOSE groups as being contemproary with timelines. It might be useful to think of events that are contemproary but oputside a timeline as actually inside the timeline for the purposes of placing them.
 
-function drawTimeline() {
+function drawAllEvents() {
   // For every event in flatEvents:
-    // Check if the event has already been drawn
-    // If not: call drawEvent() on it
+    // call drawEvent() on it
+}
+
+function groupContemporaries() {
+  // For every event in flatEvents:
+    //  If an event has contemporaries and it not already in a group:
+      // Create an group entry in an object or array
+      // call checkContemporaries() passing the group entry to it.
+  
+}
+
+function checkContemporaries() { // Receives a pointer to a contemporary group
+  // If the event is NOT a member of the group:
+    addToContemporaryGroup() // Asign the event as a member of the passed group
+    // for all of their contemporarys:
+      // call checkContemporaries() passing on the same group object
+}
+
+function addToContemporaryGroup() { // Receives an event node and a ContemporaryGroup
+  // Add group memeber info to the flatEvents object
+  // Add ID to the contemporaryGroup object
 }
 
 function drawEvent() {
-  // Check if the event has relations
-    // If not: Put it in unconstrainedArray
-    // Else: try to draw it in the SVG
-      // If there is not room for it: Call push() to make room (See chats with Gemini)
-      // Else: Draw it
-    // Mark event as drawn, somehow
-    // call drawEvent() for all of it's relations
+  // read column and vertical position from flatEvents
+  // draw the event into the SVG
 }
 
 function push() {
@@ -175,8 +191,4 @@ function push() {
   // Check if the event's followers would no longer be valid if it moved
   // If so: call push() by the difference
   // Move the event
-}
-
-function drawTimelineBorder() {
-  // The start and end positions, as well as the width, of the tiemlines are defined by the virtual arrow guide input and output events that every internal column of every timelne has. These virtual events will be listed in flatEvents.
 }
