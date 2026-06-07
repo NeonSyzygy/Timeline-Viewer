@@ -59,7 +59,8 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
     syncData(getById(event.id));
   }
   
-  drawAllEvents(); // Render all events to the SVG, save their heights to flatEvents.
+  drawAllEvents(); // Render all events to the SVG.
+  getEventHeights(); // save their heights to flatEvents.
   // Group all contemporary events into group objects, then save those groups to their own array and mark individual events in flatEvents as being members of a contemporary group.
   // Place events 1 by one into an array (Gemini chat JavaScript Object and Array Manipulation).
     // call pushEvent() if there are overlaps.
@@ -88,7 +89,7 @@ function flatRecurse(node, pathString) {
     console.warn(`[TimelineParser] "events" missing or invalid at node "${node.id}". Treating as empty.`);
   }
   for (let i = 0; i < (Array.isArray(node.events) ? node.events : []).length; i++) {
-    flatEvents.push({ id: node.events[i].id, path: pathString + ".events[" + i + "]" });
+    flatEvents.push({ id: node.events[i].id, path: pathString + ".events[" + i + "]",  height: 0, group: -1 });
   }
 }
 
@@ -151,7 +152,22 @@ function syncData(node) {
 
 // v Organize events and timelines into a single flat grid v //
 
-// The psedocode that follows is only half thought out. Its close, but wrong. I need to group events into contemprary groups, which actually means i need to group EVENTS first and then also group THOSE groups as being contemproary with timelines. It might be useful to think of events that are contemproary but oputside a timeline as actually inside the timeline for the purposes of placing them.
+// Again, this pseudocode is not right, I'm still working through it.
+// If I place every event/eventGroup that has no priors first, then place their followers (and groups), then place the priors (and priorGroups) of those followers, then the followers (and follower groups), and so on, then it might just work correctly.
+// Actually, if I place events that have ONLY priors last, they are guranteed to fit too. So I only need to sort events that have both pirors and followers. This means I need to filter flatEvents into groups, followersOnly, priorsOnly, and priorsAndFollowers (where groups are members of the special groups but their contained events maybe arent).
+
+// I might just have to bite the bullet and check the entire god damn array for errors every time I place an event...
+
+// Gemini sugested that I basically track HOW MANY priors every event yet to be placed has remaining, and subtract from their priors every time I place one. This way I can place all of my events that have zero priors, which will reduce the number of priors for remaining events, and if any mroe events have zero remaining priors then they BECOME safe to place at the bottom of the chart.
+// If I hit a state where events do not drop to zero remaining priors then you isntantly know that those lowest value events are members of a circular dependancy, and I can put them in the broken column or end the process.
+
+// When I check group fitment I will have to check individually for every column, then move the group based on the column with the smallest avalable distance.
+
+function getHeights() {
+  // For every event in flatEvents:
+    // get height from SVG Element
+    // Save height to flat EVENTS
+}
 
 function groupContemporaries() {
   // For every event in flatEvents:
@@ -167,19 +183,39 @@ function checkContemporaries() { // Receives a pointer to a contemporary group
       // call checkContemporaries() passing on the same group object
 }
 
-function addToContemporaryGroup() { // Receives an event node and a ContemporaryGroup
+function addToContemporaryGroup() { // Receives an event node and a contemporaryGroup
   // Add group memeber info to the flatEvents object
   // Add ID to the contemporaryGroup object
 }
 
-function pushEvent() {
-  // Check whether there is room to push the event
-  // if not:
-    // Call push() on the overlapping event by the amount overlapped
-  // Call push() on the event's contemproaries
-  // Check if the event's followers would no longer be valid if it moved
-  // If so: call push() by the difference
-  // Move the event
+function moveEvent(eventNode) { // Directly move an event to a new position (Does not reorder, only move down)
+  // Set event to new Location
+  // Calculate affected range
+  // If it has a group:
+    // Call pushEvent() on all events in its group.
+  // If it has followers:
+    // Call pushEvent() on all of its followers.
+  // Call checkPush()
+}
+
+function checkPush(column, startPosition, endPosition) { // Checks to see if events exist in a range, then calls pushEvent() on them all
+  // for every event in column:
+    // If they are within the range
+      // pushEvent()
+    // else If they are beyond the range
+      // Break early
+}
+
+function pushEvent(distance) { // Assumes that events in that columns will NOT reorder, only pushes DOWN.
+  // Get the current position of the bottom edge of the virtual event
+  // Adjust the event's saved position in the virtual chart array
+  // If it has a group:
+    // Call pushEvent() on all events in its group.
+  // If it has followers:
+    // Call pushEvent() on all of its followers.
+  // Check whether any other events exist in the column (that have indexes following the pushed event) between the starting bottom edge posiotion and the new positon (stopping checking once you hid an evet that doesn't overlap, and save those events.
+  // For each of the overlapped events:
+    // pushEvent() by the 
 }
 
 function drawAllEvents() {
