@@ -7,7 +7,7 @@ let flatTimelines = [];
 document.getElementById("timeline-button-load-file").addEventListener("click", handleLoadTimeline);
 
 document.getElementById("timeline-button-save-file").addEventListener("click", handleSaveTimeline);
-    
+
 function handleLoadTimeline() {
   const input = document.createElement("input");
   input.type = "file";
@@ -16,9 +16,9 @@ function handleLoadTimeline() {
   input.onchange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-        
+    
     const text = await file.text();
-        
+    
     try {
       timelineData = JSON.parse(text); // timelineData becomes the raw JSON from the file
       
@@ -28,7 +28,7 @@ function handleLoadTimeline() {
       console.error(err);
     }
   };
-      
+  
   input.click();
 }
 
@@ -58,6 +58,11 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   for (const event of flatEvents) {
     syncData(getById(event.id));
   }
+  // Render all events to the SVG, save their heights to flatEvents.
+  // Place events 1 by one into an array (Gemini chat JavaScript Object and Array Manipulation).
+    // call pushEvent() if there are overlaps.
+    // call reorderEvent() if events hapen to be out of order when you place a new one.
+  // When everything is organized, clear the SVG and draw everything top to bottom.
 }
 
 function flattenData(data) {
