@@ -1,0 +1,35 @@
+{
+  "type": "timeline",
+  "id": "Main Timeline",
+  "timelines": [
+    {
+      "type": "timeline",
+      "id": "Subtimeline",
+      "column": "Main",
+      "width": 1,
+      "columns": ["Sub-Timeline Main", "Sub-Timeline Second"],
+      "priors": [],
+      "followers": [],
+      "contemporaries": [],
+      "timelines": [],
+      "events": [
+        {
+          "type": "event",
+          "id": "Event 2"
+        },
+        {
+          "type": "event",
+          "id": "Event 3",
+          "column": "Sub-Timeline Second"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "event",
+      "id": "Event 1",
+      "prior": ["Event 2"]
+    }
+  ]
+}

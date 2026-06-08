@@ -59,13 +59,25 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
     syncData(getById(event.id));
   }
   
-  drawAllEvents(); // Render all events to the SVG.
-  getEventHeights(); // save their heights to flatEvents.
-  // Group all contemporary events into group objects, then save those groups to their own array and mark individual events in flatEvents as being members of a contemporary group.
-  // Place events 1 by one into an array (Gemini chat JavaScript Object and Array Manipulation).
-    // call pushEvent() if there are overlaps.
-    // call reorderEvent() if events hapen to be out of order when you place a new one.
-  // When everything is organized, clear the SVG and draw everything top to bottom.
+  // For every event in flatEvents:
+    // draw it off screen.
+  // For every event in flatEvents:
+    // If the event has no relations: Save it to noRelationships
+    // If contemporaryGroup is false:
+      // If the event has contemporaries:
+        // Create a new group in contemporaryGroups
+        // call assignContemporaries() for that event (which will set contemporaryGroup to be True in flat events, then recursively call assignContemporaries() again for all contemporaries.
+      // Else (If no contemporaries):
+        // save the event to noContemporaries
+        // Set it's number of priors in noContemporaries
+    // Else (If contemporaryGroup is True):
+      // Do nothing, I guess
+  // I now have 3 arrays: noRelationships, contemporaryGroups, and noContemporaries.
+  // addToQueue()
+    // for every entry in contemporaryGroups:
+      // If the group has zero priors:
+        // Add the group to the queue
+        // Reduce all followers of the group
 }
 
 function flattenData(data) {
@@ -75,19 +87,65 @@ function flattenData(data) {
   flatRecurse(data, "timelineData");
 }
 
-function flatRecurse(node, pathString) {
-  flatTimelines.push({ id: node.id, path: pathString });
+function flatRecurse(node, pathString) { // Only gets called one timeline nodes
+  // Create the flat timeline get it's index, and prep its fields.
+  const nodeIndex = flatTimelines.push({ id: node.id, path: pathString, priors: [], followers: [], contemporaries: [] });
   
-  if (!Array.isArray(node.timelines)) { // Logs an error if node.timelines is not a valid array.
-    console.warn(`[TimelineParser] "timelines" missing or invalid at node "${node.id}". Treating as empty.`);
+  // Set all of the relations for the flat timeline.
+  if (Array.isArray(node.priors)) {
+    for (const prior of node.priors) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
+      flatTimelines[nodeIndex].priors.push(node.priors[prior])
+    }
   }
+  if (Array.isArray(node.followers)) {
+    for (const follower of node.followers) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
+      flatTimelines[nodeIndex].followers.push(node.followers[follower])
+    }
+  }
+  if (Array.isArray(node.contemporaries)) {
+    for (const contemporary of node.contemporaries) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
+      flatTimelines[nodeIndex].contemporaries.push(node.contemporaries[contemporary])
+    }
+  }
+  
+  // create entry virtual events, and put them in flatEvents.
+  let entryNodes = [];
+  for (const entry of node.columns) {
+    entryNodes.push({ id: entry + "Entry", type: "entry", column: entry, priors: [], followers: [], contemporaries: [] }); 
+  }
+  for (let i = 0; i < entryNodes.length; i++) {
+    for (const prior of node.priors) {
+      entryNodes[i].priors.push(prior); // Add the timeline's priors to each entry node.
+    }
+    for (let c = 0; c < entryNodes.length; c++) {
+      if (c != i) {
+        entryNodes[c].contemporaries.push(entryNodes[i].id); // Add contemporaries for every entry.
+      }
+    }
+  }
+  flatEvents.concat(entryNodes);
+  
+  // create exit virtual events, and put them in flatEvents.
+  let exitNodes = [];
+  for (const exit of node.columns) {
+    entryNodes.push({ id: exit + "Exit", type: "exit", column: entry, priors: [], followers: [], contemporaries: [] }); 
+  }
+  for (let i = 0; i < exitNodes.length; i++) {
+    for (const prior of node.priors) {
+      exitNodes[i].priors.push(prior); // Add the timeline's priors to each entry node.
+    }
+    for (let c = 0; c < exitNodes.length; c++) {
+      if (c != i) {
+        exitNodes[c].contemporaries.push(exitNodes[i].id); // Add contemporaries for every entry.
+      }
+    }
+  }
+  flatEvents.concat(exitNodes);
+  
   for (let i = 0; i < (Array.isArray(node.timelines) ? node.timelines : []).length; i++) {
     flatRecurse(node.timelines[i], pathString + ".timelines[" + i + "]");
   }
   
-  if (!Array.isArray(node.events)) { // Logs an error if node.events is not a valid array.
-    console.warn(`[TimelineParser] "events" missing or invalid at node "${node.id}". Treating as empty.`);
-  }
   for (let i = 0; i < (Array.isArray(node.events) ? node.events : []).length; i++) {
     flatEvents.push({ id: node.events[i].id, path: pathString + ".events[" + i + "]",  height: 0, group: -1 });
   }
@@ -152,78 +210,3 @@ function syncData(node) {
 
 // v Organize events and timelines into a single flat grid v //
 
-// Again, this pseudocode is not right, I'm still working through it.
-// If I place every event/eventGroup that has no priors first, then place their followers (and groups), then place the priors (and priorGroups) of those followers, then the followers (and follower groups), and so on, then it might just work correctly.
-// Actually, if I place events that have ONLY priors last, they are guranteed to fit too. So I only need to sort events that have both pirors and followers. This means I need to filter flatEvents into groups, followersOnly, priorsOnly, and priorsAndFollowers (where groups are members of the special groups but their contained events maybe arent).
-
-// I might just have to bite the bullet and check the entire god damn array for errors every time I place an event...
-
-// Gemini sugested that I basically track HOW MANY priors every event yet to be placed has remaining, and subtract from their priors every time I place one. This way I can place all of my events that have zero priors, which will reduce the number of priors for remaining events, and if any mroe events have zero remaining priors then they BECOME safe to place at the bottom of the chart.
-// If I hit a state where events do not drop to zero remaining priors then you isntantly know that those lowest value events are members of a circular dependancy, and I can put them in the broken column or end the process.
-
-// When I check group fitment I will have to check individually for every column, then move the group based on the column with the smallest avalable distance.
-
-function getHeights() {
-  // For every event in flatEvents:
-    // get height from SVG Element
-    // Save height to flat EVENTS
-}
-
-function groupContemporaries() {
-  // For every event in flatEvents:
-    //  If an event has contemporaries and it not already in a group:
-      // Create an group entry in an object or array
-      // call checkContemporaries() passing the group entry to it.
-}
-
-function checkContemporaries() { // Receives a pointer to a contemporary group
-  // If the event is NOT a member of the group:
-    addToContemporaryGroup() // Asign the event as a member of the passed group
-    // for all of their contemporarys:
-      // call checkContemporaries() passing on the same group object
-}
-
-function addToContemporaryGroup() { // Receives an event node and a contemporaryGroup
-  // Add group memeber info to the flatEvents object
-  // Add ID to the contemporaryGroup object
-}
-
-function moveEvent(eventNode) { // Directly move an event to a new position (Does not reorder, only move down)
-  // Set event to new Location
-  // Calculate affected range
-  // If it has a group:
-    // Call pushEvent() on all events in its group.
-  // If it has followers:
-    // Call pushEvent() on all of its followers.
-  // Call checkPush()
-}
-
-function checkPush(column, startPosition, endPosition) { // Checks to see if events exist in a range, then calls pushEvent() on them all
-  // for every event in column:
-    // If they are within the range
-      // pushEvent()
-    // else If they are beyond the range
-      // Break early
-}
-
-function pushEvent(distance) { // Assumes that events in that columns will NOT reorder, only pushes DOWN.
-  // Get the current position of the bottom edge of the virtual event
-  // Adjust the event's saved position in the virtual chart array
-  // If it has a group:
-    // Call pushEvent() on all events in its group.
-  // If it has followers:
-    // Call pushEvent() on all of its followers.
-  // Check whether any other events exist in the column (that have indexes following the pushed event) between the starting bottom edge posiotion and the new positon (stopping checking once you hid an evet that doesn't overlap, and save those events.
-  // For each of the overlapped events:
-    // pushEvent() by the 
-}
-
-function drawAllEvents() {
-  // For every event in flatEvents:
-    // call drawEvent() on it
-}
-
-function drawEvent() {
-  // read column and vertical position from flatEvents
-  // draw the event into the SVG
-}
