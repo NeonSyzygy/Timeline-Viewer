@@ -51,6 +51,29 @@ function handleSaveTimeline() { // Saves the current state of timelineData to a 
 }
 
 function buildTimeline() { // Run this any time timelineData has changes that you want to show.
+  // prepData() {
+  // 1. Build a copy of timelineData, and build a hashmap of every event in the copy by ID
+  //   1a. Save the timeline to a timeline hashmap
+  //   1b. For every timeline, place entry events where each is contemp with the previous.
+  //   1c. Place exit events where each is contemporary with the last, and where at least one follows the entry events.
+  //   1d. Place the timeline's internal events also marked as folowing the last entry event and prior to the exit events.
+  // 2. Synchronise every event relationship with each other in the hashmap
+  //   2a. For events that are contemp with a timeline, simply add special relationship rules for follows timelineIDEntryA and prior to timelineIDExitA, and then ad the recipricals to the entry and exit events.
+  // 3. Find all events that are contemp, and asign them to groups (create another hashmap where each ID contains a pointer to its group, so that I can look up any event ID and it will either return null if it is not yet asigned a group or it will return the group object).
+  // 4. Find all events that have no relations, save them to another hash map.
+  // 5. Fine all events that have no contemporaries, and save them to the groups hashmap.
+  // (3, 4, and 5 can be done at the same time, I think)
+  // }
+  
+  // drawEvents() {
+  // 1. Create an array to store the current position of each column.
+  // 2. For ever entry in the groups hashmap, count/save their priors and add any events with zero priors to a queue to be placed.
+  // 3. Place an event, update the column psition record, and remove the event from the groups hashmap.
+  // 4. Reduce the prior count of its followers, and if any of those followers now have no priors, add them to the queue.
+  // 5. Place a new event, and so on.
+  // 6. If the queue is empty and the groups hashmap is not, then you have a circular dependancy. (Optional: Itterate through the remaining events to find which ones have the least remaining priors, and display them to the user to be fixed)
+  // }
+  
   flattenData(timelineData);
   for (const timeline of flatTimelines) {
     syncData(getById(timeline.id));
@@ -58,26 +81,6 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   for (const event of flatEvents) {
     syncData(getById(event.id));
   }
-  
-  // For every event in flatEvents:
-    // draw it off screen.
-  // For every event in flatEvents:
-    // If the event has no relations: Save it to noRelationships
-    // If contemporaryGroup is false:
-      // If the event has contemporaries:
-        // Create a new group in contemporaryGroups
-        // call assignContemporaries() for that event (which will set contemporaryGroup to be True in flat events, then recursively call assignContemporaries() again for all contemporaries.
-      // Else (If no contemporaries):
-        // save the event to noContemporaries
-        // Set it's number of priors in noContemporaries
-    // Else (If contemporaryGroup is True):
-      // Do nothing, I guess
-  // I now have 3 arrays: noRelationships, contemporaryGroups, and noContemporaries.
-  // addToQueue()
-    // for every entry in contemporaryGroups:
-      // If the group has zero priors:
-        // Add the group to the queue
-        // Reduce all followers of the group
 }
 
 function flattenData(data) {
@@ -207,6 +210,3 @@ function syncData(node) {
     }
   }
 }
-
-// v Organize events and timelines into a single flat grid v //
-
