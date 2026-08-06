@@ -1,8 +1,11 @@
 // Saving and loading the json
     
 let timelineData = null; //timelineData is always the JSON text representation of the chart
+let timelineDataEdit = null; //timelineDataEdit is the current working copy of the chart
 let flatEvents = [];
 let flatTimelines = [];
+let hashedEvents = new Map();
+let hashedtimelines = new Map();
     
 document.getElementById("timeline-button-load-file").addEventListener("click", handleLoadTimeline);
 
@@ -74,7 +77,7 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   // 6. If the queue is empty and the groups hashmap is not, then you have a circular dependancy. (Optional: Itterate through the remaining events to find which ones have the least remaining priors, and display them to the user to be fixed)
   // }
   
-  flattenData(timelineData);
+  prepData();
   for (const timeline of flatTimelines) {
     syncData(getById(timeline.id));
   }
@@ -83,21 +86,54 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   }
 }
 
-function flattenData(data) {
+function prepData() {
+  timelineDataEdit = structuredClone(timelineData);
+  hashedEvents.clear();
   flatEvents = [];
   flatTimelines = [];
   
-  flatRecurse(data, "timelineData");
+  flatRecurse(timelineDataEdit, "timelineDataEdit");
 }
 
-function flatRecurse(node, pathString) { // Only gets called one timeline nodes
-  // Create the flat timeline get it's index, and prep its fields.
-  const nodeIndex = flatTimelines.push({ id: node.id, path: pathString, priors: [], followers: [], contemporaries: [] });
+//function flattenData(data) {
+//  flatEvents = [];
+//  flatTimelines = [];
+//  
+//  flatRecurse(data, "timelineData");
+//}
+
+function flatRecurse(node) { // Only gets called one timeline nodes, not Events.
+  if (node.id) { // If the timeline has a valid ID:
+    // Save it to the timelines hash map.
+    hashedtimelines.set(node.id, node);
+    
+    // Initialize a variable to remember the last event added
+    let lastVirtualNode = null;
+    let currentVirtualNode = null;
+    
+    // For every column in the timeline:
+    for (let c = 0, c < node.width, c++) {
+      // Add new event to the current timeline, and save that object to currentEntryNode
+      currentVirtualNode = node.events[node.events.push({ id: '${node.id} Entry Node ${c}', priors: [], followers: [], contemporaries: [] })-1];
+      
+      // If it isn't the first virtual entry node:
+      if (lastVirtualNode != null) {
+        // add the previous entry node as contemporary
+        currentVirtualNode.contemporaries.push(lastVirtualNode);
+      }
+      
+      // Add event to the hashmap
+      hashedEvents.set(currentVirtualNode.id, currentVirtualNode);
+      
+      // Save finished entry node as last node
+      lastVirtualNode = currentVirtualNode;
+    }
+  }
   
   // Set all of the relations for the flat timeline.
   if (Array.isArray(node.priors)) {
-    for (const prior of node.priors) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
-      flatTimelines[nodeIndex].priors.push(node.priors[prior])
+    for (let p = 0, p < node.priors.length(), p++) { //const prior of node.priors) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
+      flatTimelines[nodeIndex-1].priors.push(node.priors[prior]) // This pushes the data from timelineData and duplicates (links?) it to flatTimelines.
     }
   }
   if (Array.isArray(node.followers)) {

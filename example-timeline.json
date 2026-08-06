@@ -5,9 +5,8 @@
     {
       "type": "timeline",
       "id": "Subtimeline",
-      "column": "Main",
+      "column": 1,
       "width": 1,
-      "columns": ["Sub-Timeline Main", "Sub-Timeline Second"],
       "priors": [],
       "followers": [],
       "contemporaries": [],
