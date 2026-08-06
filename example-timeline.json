@@ -6,7 +6,7 @@
       "type": "timeline",
       "id": "Subtimeline",
       "column": 1,
-      "width": 1,
+      "width": 2,
       "priors": [],
       "followers": [],
       "contemporaries": [],
@@ -19,7 +19,7 @@
         {
           "type": "event",
           "id": "Event 3",
-          "column": "Sub-Timeline Second"
+          "column": 2
         }
       ]
     }
@@ -28,7 +28,7 @@
     {
       "type": "event",
       "id": "Event 1",
-      "prior": ["Event 2"]
+      "priors": ["Event 2"]
     }
   ]
 }
