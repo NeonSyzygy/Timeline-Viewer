@@ -2,8 +2,6 @@
     
 let timelineData = null; //timelineData is always the JSON text representation of the chart
 let timelineDataEdit = null; //timelineDataEdit is the current working copy of the chart
-let flatEvents = [];
-let flatTimelines = [];
 let hashedEvents = new Map();
 let hashedTimelines = new Map();
 let contempGroups = [];
@@ -59,8 +57,6 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   timelineDataEdit = structuredClone(timelineData);
   
   // Make sure all my variables are blank
-  flatEvents = [];
-  flatTimelines = [];
   hashedEvents.clear();
   hashedTimelines.clear();
   
@@ -163,14 +159,43 @@ function handleSubtimelineEvents(node, entryExitNodes) { // Only gets called one
 }
 
 function syncData() { // WIP
-  // For every node in hashmap:
+  // For every node in hashedTimelines
+  For (node of hashedTimelines.values()) {
     // For every relationship in node:
       // If relationship is an event:
         // If target does not already have this relationship:
           // Add recipricol relationships on target
       // Else if relationship is a timeline:
         // If target does not already have this relationship:
+          // Contemp: virtual entry nodes need to come prior to virtual exits on target, and vice versa
+          // Prior/Follower: prior's exit nodes need to be priors of the follower's entry nodes.
+        // All relationships here must be asigned to virtual events
+  }
+  
+  // For every node in hashmap:
+  For (node of hashedEvents.values()) {
+    // For every relationship in node:
+    For (prior of node.priors) {
+      // If relationship is an event:
+      if (prior.type == "event") {
+        // If target does not already have this relationship:
+          // Add recipricol relationships on target
+      }
+      // Else if relationship is a timeline:
+      else { if (prior.type == "timeline") {
+        // If target does not already have this relationship:
           // Add recipricol relatioships to entry0 and exit0
+      }}
+    }
+    
+    For (follower of node.followers) {
+      
+    }
+    
+    For (contemporary of node.contemporaries) {
+      
+    }
+  }
   // relationships are now synced
   
   // Set contempGroups = [] just in case
@@ -191,6 +216,40 @@ function syncData() { // WIP
   // For all groups:
     // Remove all events in groups from normal hashmap
     // Add virtual "group" type event (which contains it's events) to the hashmap
+}
+
+function addRelationship(targetId, relationshipId, relationshipType) {
+  // Check that we are not trying to asign a relationship to itself, and exit if so
+  if (targetId == relationshipId) { return }
+  // Check if targetId is a timeline
+  let targetNode = hashedTimelines.get(targetId);
+  // If not, then check if it's an event
+  if (targetNode == undefined) { targetNode = hashedEvents.get(targetId); }
+  // if not, then log an error and exit the funciton
+  if (targetNode == undefined) {
+    console.log("addRelationship() called on invalid node ID.");
+    return
+  }
+  // targetNode is now the correct event/timeline object
+  
+  // Check what kind of relationship we are adding
+  switch (relationshipType) {
+    case 0: // add as priors
+      switch (targetNode.type) {
+        case "event": targetNode.priors.push(relationshipId);
+      case "timeline": hashedEvents.get('${targetId} Entry Node 0').priors.push(relationshipId);
+      }
+    case 1: // add as followers
+      switch (targetNode.type) {
+        case "event": targetNode.followers.push(relationshipId);
+        case "timeline": hashedEvents.get('${targetId} Exit Node 0').followers.push(relationshipId);
+      }
+    case 2: // add as contemporaries
+      switch (targetNode.type) {
+        case "event": targetNode.contemporaries.push(relationshipId);
+        case "timeline":
+      }
+  }
 }
 
 function buildDrawQueue() {
@@ -236,51 +295,3 @@ function deduplicate() {
   }
 }
 
-function syncDataOld(node) { // Old, rewrite this
-  // Check to make sure node actually has fields
-  if (!Array.isArray(node.priors)) {
-    node.priors = [];
-  }
-  if (!Array.isArray(node.followers)) {
-    node.followers = [];
-  }
-  if (!Array.isArray(node.contemporaries)) {
-    node.contemporaries = [];
-  }
-  
-  // Check priors and assign follower
-  for (const prior of node.priors) {
-    const target = getById(priors);
-    if (!target) continue;
-    if (!Array.isArray(target.followers)) {
-      target.followers = [];
-    }
-    if (!target.followers.includes(node.id)) {
-      target.followers.push(node.id);
-    }
-  }
-  
-  // Check follower and assign prior
-  for (const follower of node.followers) {
-    const target = getById(followers);
-    if (!target) continue;
-    if (!Array.isArray(target.priors)) {
-      target.priors = [];
-    }
-    if (!target.priors.includes(node.id)) {
-      target.priors.push(node.id);
-    }
-  }
-  
-  // Check and assign contemporary
-  for (const contemporary of node.contemporaries) {
-    const target = getById(contemporaries);
-    if (!target) continue;
-    if (!Array.isArray(target.contemporaries)) {
-      target.contemporaries = [];
-    }
-    if (!target.contemporaries.includes(node.id)) {
-      target.contemporaries.push(node.id);
-    }
-  }
-}
