@@ -6,6 +6,7 @@ let flatEvents = [];
 let flatTimelines = [];
 let hashedEvents = new Map();
 let hashedTimelines = new Map();
+let contempGroups = [];
     
 document.getElementById("timeline-button-load-file").addEventListener("click", handleLoadTimeline);
 
@@ -66,29 +67,14 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
   // Add all real and virtual events to the hashmap, and handle subtimeline replationships
   flatRecurse(timelineDataEdit, [null, null]);
   
-  // 2. Synchronise every event relationship with each other in the hashmap
-  //   2a. For events that are contemp with a timeline, simply add special relationship rules for follows timelineIDEntryA and prior to timelineIDExitA, and then ad the recipricals to the entry and exit events.
-  // 3. Find all events that are contemp, and asign them to groups (create another hashmap where each ID contains a pointer to its group, so that I can look up any event ID and it will either return null if it is not yet asigned a group or it will return the group object).
-  // 4. Find all events that have no relations, save them to another hash map.
-  // 5. Fine all events that have no contemporaries, and save them to the groups hashmap.
-  // (3, 4, and 5 can be done at the same time, I think)
-  // }
+  // Sync all relationships across all events, create contemporary groups
+  syncData();
   
-  // drawEvents() {
-  // 1. Create an array to store the current position of each column.
-  // 2. For ever entry in the groups hashmap, count/save their priors and add any events with zero priors to a queue to be placed.
-  // 3. Place an event, update the column psition record, and remove the event from the groups hashmap.
-  // 4. Reduce the prior count of its followers, and if any of those followers now have no priors, add them to the queue.
-  // 5. Place a new event, and so on.
-  // 6. If the queue is empty and the groups hashmap is not, then you have a circular dependancy. (Optional: Itterate through the remaining events to find which ones have the least remaining priors, and display them to the user to be fixed)
-  // }
-
-  //for (const timeline of flatTimelines) {
-  //  syncData(getById(timeline.id));
-  //}
-  //for (const event of flatEvents) {
-  //  syncData(getById(event.id));
-  //}
+  // Find all 0 priors, add to draw queue, and set aside all 0 relationship events
+  buildDrawQueue();
+  
+  // While there are events in the queue: draw them, add new ones, remove finished ones
+  processQueue();
 }
 
 function flatRecurse(node, parentEntryExit) { // Only gets called one timeline nodes, not Events.
@@ -103,33 +89,6 @@ function flatRecurse(node, parentEntryExit) { // Only gets called one timeline n
     for (const timeline of node.timelines) {
       flatRecurse(timeline, currentEntryExit);
     }
-  }
-}
-  
-function oldFlatRecurse(node) { // Leftover stuff I haven't replaced yet
-  // Set all of the relations for the flat timeline.
-  if (Array.isArray(node.priors)) {
-    for (let p = 0, p < node.priors.length(), p++) { //const prior of node.priors) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
-      flatTimelines[nodeIndex-1].priors.push(node.priors[prior]) // This pushes the data from timelineData and duplicates (links?) it to flatTimelines.
-    }
-  }
-  if (Array.isArray(node.followers)) {
-    for (const follower of node.followers) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
-      flatTimelines[nodeIndex].followers.push(node.followers[follower])
-    }
-  }
-  if (Array.isArray(node.contemporaries)) {
-    for (const contemporary of node.contemporaries) { // Needs to be converted to a regular integer for loop, this just gets the actual data object for the property
-      flatTimelines[nodeIndex].contemporaries.push(node.contemporaries[contemporary])
-    }
-  }
-  
-  for (let i = 0; i < (Array.isArray(node.timelines) ? node.timelines : []).length; i++) {
-    flatRecurse(node.timelines[i], pathString + ".timelines[" + i + "]");
-  }
-  
-  for (let i = 0; i < (Array.isArray(node.events) ? node.events : []).length; i++) {
-    flatEvents.push({ id: node.events[i].id, path: pathString + ".events[" + i + "]",  height: 0, group: -1 });
   }
 }
 
@@ -203,6 +162,64 @@ function handleSubtimelineEvents(node, entryExitNodes) { // Only gets called one
   }
 }
 
+function syncData() { // WIP
+  // For every node in hashmap:
+    // For every relationship in node:
+      // If relationship is an event:
+        // If target does not already have this relationship:
+          // Add recipricol relationships on target
+      // Else if relationship is a timeline:
+        // If target does not already have this relationship:
+          // Add recipricol relatioships to entry0 and exit0
+  // relationships are now synced
+  
+  // Set contempGroups = [] just in case
+  // For every node in hashmap:
+    // let tempGroups = [];
+    // if node has a group: add group to tempGroups
+    // For every contemp in node:
+      // If contemp has a group: add group to tempGroups
+    // Switch (tempGroups.length()) {
+      // case 0: Create new group, add node and all contemps to new group, update all node group pointers
+      // case 1: add all events that arent already to group, addnode group pointers
+      // case > 1 Create new group, add all events (from groups, and current node, and node.contemp) to new group, set all members of new group to point to new group.
+    // In any case where an event is added to a group, new or merge:
+      // Add it's relationships to the group obejct
+      // Update the targets of those relationships to point to the group object instead.
+  // Events are now grouped
+  
+  // For all groups:
+    // Remove all events in groups from normal hashmap
+    // Add virtual "group" type event (which contains it's events) to the hashmap
+}
+
+function buildDrawQueue() {
+  // For every event in hashmap:
+    // If (node.priors.length() == 0) { add node to queue, remove from hashmap }
+    // Else
+      // If node.followers.length() == 0 { add to noRelations hashmap, remove from main hashmap }
+}
+
+function processQueue() {
+  // Create an array to store the current position of each column.
+  // while (queue.length > 0) {
+    // let currentEvent = queue.shift();
+    // for all in followers:
+      // remove event from priors
+      // If follower now has 0 priors: Add to queue
+    // drawEvent(currentEvent);
+  // If hashMap still has stuff in it: Something is wrong
+  // Else: For every event in noRelations hashmap: drawEvent()
+}
+
+function drawEvent(node) {
+  // Draw the event, idk
+  // This will need to:
+    // A) Get the column from the event itself, which likely includes checking the event's parent timeline starting column
+    // B) handle groups, I guess by calling itself for every event in the group?
+    // C) Read and update the posiiton of each column in the array created from processQueue()
+}
+
 function deduplicate() {
   // For every event in the hashmap:
   for (const node of hashedEvents.values()) {
@@ -219,7 +236,7 @@ function deduplicate() {
   }
 }
 
-function syncData(node) { // Old, rewrite this
+function syncDataOld(node) { // Old, rewrite this
   // Check to make sure node actually has fields
   if (!Array.isArray(node.priors)) {
     node.priors = [];
