@@ -218,7 +218,7 @@ function syncData() { // WIP
     // Add virtual "group" type event (which contains it's events) to the hashmap
 }
 
-function addRelationship(targetId, relationshipId, relationshipType) {
+function addRelationship(targetId, relationshipId, relationshipType) { // Assumes virtual events have been built
   // Check that we are not trying to asign a relationship to itself, and exit if so
   if (targetId == relationshipId) { return }
   // Check if targetId is a timeline
