@@ -106,7 +106,7 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
   // For every column in the timeline:
   for (let c = 0; c < node.width; c++) {
     // Add new entry event to the current timeline, and save that object to currentVirtualNode
-    currentVirtualNode = node.events[node.events.push({ id: `${node.id} Entry Node ${c}`, type: "entry", priors: [], followers: [], contemporaries: [] })-1];
+    currentVirtualNode = node.events[node.events.push({ id: `${node.id} Entry Node ${c}`, type: "event", subtype: "entry", priors: [], followers: [], contemporaries: [] })-1];
     
     // If it isn't the first virtual entry node:
     if (lastVirtualEntryNode != null) {
@@ -125,7 +125,7 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
   // For every column in the timeline:
   for (let c = 0; c < node.width; c++) {
     // Add new exit event to the current timeline, and save that object to currentVirtualNode
-    currentVirtualNode = node.events[node.events.push({ id: `${node.id} Exit Node ${c}`, type: "exit", priors: [], followers: [], contemporaries: [] })-1];
+    currentVirtualNode = node.events[node.events.push({ id: `${node.id} Exit Node ${c}`, type: "event", subtype: "exit", priors: [], followers: [], contemporaries: [] })-1];
     
     // If it isn't the first virtual exit node:
     if (lastVirtualExitNode != null) {
@@ -272,11 +272,13 @@ function syncData() { // Synchronizes relationships across events and groups con
         }
         
         newGroup.members = deduplicateSingle(newGroup.members);
+        for (const group of tempGroups) { hashedContempGroups.delete(group.id); }
         break;
     }
   }
   // Events are now grouped
   
+  let eventDeleteQueue = [];
   // For all groups:
   for (const group of hashedContempGroups.values()) {
     // Add group to the hashmap
@@ -305,10 +307,15 @@ function syncData() { // Synchronizes relationships across events and groups con
         hashedEvents.get(follower).priors.push(group.id);
       }
       
-      // Remove member from normal hashmap
-      hashedEvents.delete(member.id);
+      // Queue up event for deletion later
+      eventDeleteQueue.push(member.id);
     }
   }
+  
+  // Delete all events that were members of groups
+  eventDeleteQueue = deduplicateSingle(eventDeleteQueue);
+  for (eventID of eventDeleteQueue) { hashedEvents.delete(eventID); }
+  
   // All that remains should be groups of contemporary events and single events. Ready to count priors and draw.
 }
 
@@ -343,7 +350,7 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
       switch (targetNode.type) {
         case "event":
           targetNode.priors.push(relationshipId);
-          break:
+          break;
           
         case "timeline":
           hashedEvents.get(`${targetId} Entry Node 0`).priors.push(relationshipId);
