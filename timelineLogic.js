@@ -104,9 +104,9 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
   
   // Add virtual entry events
   // For every column in the timeline:
-  for (let c = 0, c < node.width, c++) {
+  for (let c = 0; c < node.width; c++) {
     // Add new entry event to the current timeline, and save that object to currentVirtualNode
-    currentVirtualNode = node.events[node.events.push({ id: '${node.id} Entry Node ${c}', type: "entry", priors: [], followers: [], contemporaries: [] })-1];
+    currentVirtualNode = node.events[node.events.push({ id: `${node.id} Entry Node ${c}`, type: "entry", priors: [], followers: [], contemporaries: [] })-1];
     
     // If it isn't the first virtual entry node:
     if (lastVirtualEntryNode != null) {
@@ -123,9 +123,9 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
   
   // Add virtual exit events
   // For every column in the timeline:
-  for (let c = 0, c < node.width, c++) {
+  for (let c = 0; c < node.width; c++) {
     // Add new exit event to the current timeline, and save that object to currentVirtualNode
-    currentVirtualNode = node.events[node.events.push({ id: '${node.id} Exit Node ${c}', type: "exit", priors: [], followers: [], contemporaries: [] })-1];
+    currentVirtualNode = node.events[node.events.push({ id: `${node.id} Exit Node ${c}`, type: "exit", priors: [], followers: [], contemporaries: [] })-1];
     
     // If it isn't the first virtual exit node:
     if (lastVirtualExitNode != null) {
@@ -186,7 +186,7 @@ function syncData() { // Synchronizes relationships across events and groups con
     let tempGroups = []; // This will store all related groups discovered, to be merged later
     
     // if node has a group: add group to tempGroups
-    if (event.contemporaryGroup) { tempGroups.push(event.contemporaryGroup); }
+    if (node.contemporaryGroup) { tempGroups.push(event.contemporaryGroup); }
     
     // For every contemp in node:
     for (const contemp of node.contemporaries) {
@@ -212,7 +212,8 @@ function syncData() { // Synchronizes relationships across events and groups con
           contemp.contemporaryGroup = newGroup.id;
         }
         
-        deduplicateSingle(newGroup.members);
+        newGroup.members = deduplicateSingle(newGroup.members);
+        break;
       
       // if contemps only have 1 group between them:
       case (tempGroups.length === 1): // add all events that arent already to group, addnode group pointers
@@ -230,7 +231,8 @@ function syncData() { // Synchronizes relationships across events and groups con
           contemp.contemporaryGroup = newGroup.id;
         }
         
-        deduplicateSingle(newGroup.members);
+        newGroup.members = deduplicateSingle(newGroup.members);
+        break;
       
       // if contemps have more than 1 group:
       case ( tempGroups.length > 1): // Create new group, add all events (from groups, and current node, and node.contemp) to new group, set all members of new group to point to new group.
@@ -268,7 +270,8 @@ function syncData() { // Synchronizes relationships across events and groups con
           contemp.contemporaryGroup = newGroup.id;
         }
         
-        deduplicateSingle(newGroup.members);
+        newGroup.members = deduplicateSingle(newGroup.members);
+        break;
     }
   }
   // Events are now grouped
@@ -287,7 +290,7 @@ function syncData() { // Synchronizes relationships across events and groups con
       // Update the targets of those relationships to point to the group object instead.
       for (const prior of member.priors) {
         // Remove member from the prior's list of followers
-        hashedEvents.get(prior).followers.filter(id => id !== member.id);
+        hashedEvents.get(prior).followers = hashedEvents.get(prior).followers.filter(id => id !== member.id);
         
         // Add group.id to the prior's followers
         prior.followers.push(group.id);
@@ -295,7 +298,7 @@ function syncData() { // Synchronizes relationships across events and groups con
       
       for (const follower of member.followers) {
         // Remove member from the follower's list of priors
-        hashedEvents.get(follower).priors.filter(id => id !== member.id);
+        hashedEvents.get(follower).priors = hashedEvents.get(follower).priors.filter(id => id !== member.id);
         
         // Add group.id to the follower's priors
         follower.priors.push(group.id);
@@ -327,24 +330,24 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
     case 0: // add as priors
       switch (targetNode.type) {
         case "event": targetNode.priors.push(relationshipId);
-        case "timeline": hashedEvents.get('${targetId} Entry Node 0').priors.push(relationshipId);
+        case "timeline": hashedEvents.get(`${targetId} Entry Node 0`).priors.push(relationshipId);
       }
     case 1: // add as followers
       switch (targetNode.type) {
         case "event": targetNode.followers.push(relationshipId);
-        case "timeline": hashedEvents.get('${targetId} Exit Node 0').followers.push(relationshipId);
+        case "timeline": hashedEvents.get(`${targetId} Exit Node 0`).followers.push(relationshipId);
       }
     case 2: // add as contemporaries
       switch (targetNode.type) {
         case "event": targetNode.contemporaries.push(relationshipId);
         case "timeline":
           if (relationshipId.type == "event") { // If the target is a timeline and the value is an event
-            hashedEvents.get('${targetId} Entry Node 0').followers.push(relationshipId);
-            hashedEvents.get('${targetId} Exit Node 0').priors.push(relationshipId);
+            hashedEvents.get(`${targetId} Entry Node 0`).followers.push(relationshipId);
+            hashedEvents.get(`${targetId} Exit Node 0`).priors.push(relationshipId);
           }
           else if (relationshipId.type == "timeline") { // If target is timeline and value is event
-            hashedEvents.get('${targetId} Entry Node 0').followers.push('${relationshipId} Exit Node 0');
-            hashedEvents.get('${targetId} Exit Node 0').priors.push('${relationshipId} Entry Node 0');
+            hashedEvents.get(`${targetId} Entry Node 0`).followers.push(`${relationshipId} Exit Node 0`);
+            hashedEvents.get(`${targetId} Exit Node 0`).priors.push(`${relationshipId} Entry Node 0`);
           }
       }
   }
