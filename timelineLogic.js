@@ -417,8 +417,6 @@ function addContemporaryGroup() { // creates, and then returns, an empty group o
 function buildDrawQueue() {
   // For every event in hashmap:
     // If (node.priors.length == 0) { add node to queue, remove from hashmap }
-    // Else
-      // If node.followers.length == 0 { add to noRelations hashmap, remove from main hashmap }
 }
 
 function processQueue() {
@@ -430,7 +428,6 @@ function processQueue() {
       // If follower now has 0 priors: Add to queue
     // drawEvent(currentEvent);
   // If hashMap still has stuff in it: Something is wrong
-  // Else: For every event in noRelations hashmap: drawEvent()
 }
 
 function drawEvent(node) {
