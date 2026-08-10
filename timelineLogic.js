@@ -195,10 +195,11 @@ function syncData() { // Synchronizes relationships across events and groups con
       if (thisEvent) { tempGroups.push(thisEvent); }
     }
     
+    let newGroup;
     switch (true) {
       // if no contemps have a group:
       case (tempGroups.length === 0): // Create new group, add node and all contemps to new group, update all node group pointers
-        let newGroup = addContemporaryGroup();
+        newGroup = addContemporaryGroup();
         
         // Set current node
         newGroup.members.push(node);
@@ -217,7 +218,7 @@ function syncData() { // Synchronizes relationships across events and groups con
       
       // if contemps only have 1 group between them:
       case (tempGroups.length === 1): // add all events that arent already to group, addnode group pointers
-        let newGroup = tempGroups[0];
+        newGroup = tempGroups[0];
         
         // Set current node
         newGroup.members.push(node);
@@ -236,7 +237,7 @@ function syncData() { // Synchronizes relationships across events and groups con
       
       // if contemps have more than 1 group:
       case ( tempGroups.length > 1): // Create new group, add all events (from groups, and current node, and node.contemp) to new group, set all members of new group to point to new group.
-        let newGroup = addContemporaryGroup();
+        newGroup = addContemporaryGroup();
         
         // For every contemp of every member of every group involved:
         for (const oldGroup of tempGroups) {
@@ -301,7 +302,7 @@ function syncData() { // Synchronizes relationships across events and groups con
         hashedEvents.get(follower).priors = hashedEvents.get(follower).priors.filter(id => id !== member.id);
         
         // Add group.id to the follower's priors
-        follower.priors.push(group.id);
+        hashedEvents.get(follower).priors.push(group.id);
       }
       
       // Remove member from normal hashmap
@@ -320,7 +321,18 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
   if (targetNode == undefined) { targetNode = hashedEvents.get(targetId); }
   // if not, then log an error and exit the funciton
   if (targetNode == undefined) {
-    console.log("addRelationship() called on invalid node ID.");
+    console.log("addRelationship() called with invalid target ID.");
+    return
+  }
+  // targetNode is now the correct event/timeline object
+  
+  // Check if relationshipid is a timeline
+  let relationshipNode = hashedTimelines.get(relationshipId);
+  // If not, then check if it's an event
+  if (relationshipNode == undefined) { relationshipNode = hashedEvents.get(relationshipId); }
+  // if not, then log an error and exit the funciton
+  if (relationshipNode == undefined) {
+    console.log("addRelationship() called with invalid relationship ID.");
     return
   }
   // targetNode is now the correct event/timeline object
@@ -329,27 +341,46 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
   switch (relationshipType) {
     case 0: // add as priors
       switch (targetNode.type) {
-        case "event": targetNode.priors.push(relationshipId);
-        case "timeline": hashedEvents.get(`${targetId} Entry Node 0`).priors.push(relationshipId);
+        case "event":
+          targetNode.priors.push(relationshipId);
+          break:
+          
+        case "timeline":
+          hashedEvents.get(`${targetId} Entry Node 0`).priors.push(relationshipId);
+          break;
       }
+      break;
+      
     case 1: // add as followers
       switch (targetNode.type) {
-        case "event": targetNode.followers.push(relationshipId);
-        case "timeline": hashedEvents.get(`${targetId} Exit Node 0`).followers.push(relationshipId);
+        case "event":
+          targetNode.followers.push(relationshipId);
+          break;
+          
+        case "timeline":
+          hashedEvents.get(`${targetId} Exit Node 0`).followers.push(relationshipId);
+          break;
       }
+      break;
+      
     case 2: // add as contemporaries
       switch (targetNode.type) {
-        case "event": targetNode.contemporaries.push(relationshipId);
+        case "event":
+          targetNode.contemporaries.push(relationshipId);
+          break;
+          
         case "timeline":
-          if (relationshipId.type == "event") { // If the target is a timeline and the value is an event
+          if (relationshipNode.type == "event") { // If the target is a timeline and the value is an event
             hashedEvents.get(`${targetId} Entry Node 0`).followers.push(relationshipId);
             hashedEvents.get(`${targetId} Exit Node 0`).priors.push(relationshipId);
           }
-          else if (relationshipId.type == "timeline") { // If target is timeline and value is event
+          else if (relationshipNode.type == "timeline") { // If target is timeline and value is event
             hashedEvents.get(`${targetId} Entry Node 0`).followers.push(`${relationshipId} Exit Node 0`);
             hashedEvents.get(`${targetId} Exit Node 0`).priors.push(`${relationshipId} Entry Node 0`);
           }
+          break;
       }
+      break;
   }
 }
 
