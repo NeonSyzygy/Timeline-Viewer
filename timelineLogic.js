@@ -149,12 +149,12 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
 function handleSubtimelineEvents(node, entryExitNodes) { // Only gets called one timeline nodes, not Events.
   // For every event in the current timeline:
   for (const event of node.events) {
-    // Set entry/exit as Prior/follower
-    event.priors.push(entryExitNodes[0]);
-    event.followers.push(entryExitNodes[1]);
-    
     // Add event to the hashmap
     hashedEvents.set(event.id, event);
+    
+    // Set entry/exit as Prior/follower
+    addRelationship(event.id, entryExitNodes[0].id, 0);
+    addRelationship(event.id, entryExitNodes[1].id, 1);
   }
 }
 
@@ -218,7 +218,7 @@ function syncData() { // WIP
     // Add virtual "group" type event (which contains it's events) to the hashmap
 }
 
-function addRelationship(targetId, relationshipId, relationshipType) { // Assumes virtual events have been built
+function addRelationship(targetId, relationshipId, relationshipType) { // Assumes virtual events have been built and all events are in hashmap
   // Check that we are not trying to asign a relationship to itself, and exit if so
   if (targetId == relationshipId) { return }
   // Check if targetId is a timeline
@@ -237,7 +237,7 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
     case 0: // add as priors
       switch (targetNode.type) {
         case "event": targetNode.priors.push(relationshipId);
-      case "timeline": hashedEvents.get('${targetId} Entry Node 0').priors.push(relationshipId);
+        case "timeline": hashedEvents.get('${targetId} Entry Node 0').priors.push(relationshipId);
       }
     case 1: // add as followers
       switch (targetNode.type) {
