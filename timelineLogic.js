@@ -186,7 +186,7 @@ function syncData() { // Synchronizes relationships across events and groups con
     let tempGroups = []; // This will store all related groups discovered, to be merged later
     
     // if node has a group: add group to tempGroups
-    if (node.contemporaryGroup) { tempGroups.push(event.contemporaryGroup); }
+    if (node.contemporaryGroup) { tempGroups.push(node.contemporaryGroup); }
     
     // For every contemp in node:
     for (const contemp of node.contemporaries) {
@@ -201,12 +201,12 @@ function syncData() { // Synchronizes relationships across events and groups con
         let newGroup = addContemporaryGroup();
         
         // Set current node
-        newGroup.push(node);
+        newGroup.members.push(node);
         node.contemporaryGroup = newGroup.id;
         
         for (const contemp of node.contemporaries) {
           // add contemp to group as memeber
-          newGroup.push(contemp);
+          newGroup.members.push(contemp);
           
           // update contemp's group value to be newGroup
           contemp.contemporaryGroup = newGroup.id;
@@ -220,12 +220,12 @@ function syncData() { // Synchronizes relationships across events and groups con
         let newGroup = tempGroups[0];
         
         // Set current node
-        newGroup.push(node);
+        newGroup.members.push(node);
         node.contemporaryGroup = newGroup.id;
         
         for (const contemp of node.contemporaries) {
           // add contemp to group as memeber
-          newGroup.push(contemp);
+          newGroup.members.push(contemp);
           
           // update contemp's group value to be newGroup
           contemp.contemporaryGroup = newGroup.id;
@@ -242,14 +242,14 @@ function syncData() { // Synchronizes relationships across events and groups con
         for (const oldGroup of tempGroups) {
           for (const member of oldGroup.members) {
             // add member to group as memeber
-            newGroup.push(member);
+            newGroup.members.push(member);
             
             // update member's group value to be newGroup
             member.contemporaryGroup = newGroup.id;
             
             for (const contemp of member.contemporaries) {
               // add contemp to group as memeber
-              newGroup.push(contemp);
+              newGroup.members.push(contemp);
               
               // update contemp's group value to be newGroup
               contemp.contemporaryGroup = newGroup.id;
@@ -258,13 +258,13 @@ function syncData() { // Synchronizes relationships across events and groups con
         }
         
         // Set current node
-        newGroup.push(node);
+        newGroup.members.push(node);
         node.contemporaryGroup = newGroup.id;
         
         // For every contemp of the active event:
         for (const contemp of node.contemporaries) {
           // add contemp to group as memeber
-          newGroup.push(contemp);
+          newGroup.members.push(contemp);
           
           // update contemp's group value to be newGroup
           contemp.contemporaryGroup = newGroup.id;
@@ -293,7 +293,7 @@ function syncData() { // Synchronizes relationships across events and groups con
         hashedEvents.get(prior).followers = hashedEvents.get(prior).followers.filter(id => id !== member.id);
         
         // Add group.id to the prior's followers
-        prior.followers.push(group.id);
+        hashedEvents.get(prior).followers.push(group.id);
       }
       
       for (const follower of member.followers) {
