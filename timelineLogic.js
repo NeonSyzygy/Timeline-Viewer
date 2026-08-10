@@ -4,7 +4,8 @@ let timelineData = null; //timelineData is always the JSON text representation o
 let timelineDataEdit = null; //timelineDataEdit is the current working copy of the chart
 let hashedEvents = new Map();
 let hashedTimelines = new Map();
-let contempGroups = [];
+let hashedContempGroups = new Map();
+let contempGroups = [0]; // index 0 is an int that counts how many groups I've created, to use as unique names
     
 document.getElementById("timeline-button-load-file").addEventListener("click", handleLoadTimeline);
 
@@ -158,64 +159,153 @@ function handleSubtimelineEvents(node, entryExitNodes) { // Only gets called one
   }
 }
 
-function syncData() { // WIP
-  // For every node in hashedTimelines
-  For (node of hashedTimelines.values()) {
+function syncData() { // Synchronizes relationships across events and groups contemporaries 
+  // For every node in both hashmaps:
+  for (const node of [...hashedEvents.values(), ...hashedTimelines.values()]) {
     // For every relationship in node:
-      // If relationship is an event:
-        // If target does not already have this relationship:
-          // Add recipricol relationships on target
-      // Else if relationship is a timeline:
-        // If target does not already have this relationship:
-          // Contemp: virtual entry nodes need to come prior to virtual exits on target, and vice versa
-          // Prior/Follower: prior's exit nodes need to be priors of the follower's entry nodes.
-        // All relationships here must be asigned to virtual events
-  }
-  
-  // For every node in hashmap:
-  For (node of hashedEvents.values()) {
-    // For every relationship in node:
-    For (prior of node.priors) {
-      // If relationship is an event:
-      if (prior.type == "event") {
-        // If target does not already have this relationship:
-          // Add recipricol relationships on target
-      }
-      // Else if relationship is a timeline:
-      else { if (prior.type == "timeline") {
-        // If target does not already have this relationship:
-          // Add recipricol relatioships to entry0 and exit0
-      }}
+    for (const prior of node.priors) {
+      // Add node as a follower of prior
+      addRelationship(prior, node.id, 1);
     }
-    
-    For (follower of node.followers) {
-      
+    for (const follower of node.followers) {
+      // Add node as a prior of follower
+      addRelationship(follower, node.id, 0);
     }
-    
-    For (contemporary of node.contemporaries) {
-      
+    for (const contemporary of node.contemporaries) {
+      // Add node as a contemporaries of contemporary
+      addRelationship(contemporary, node.id, 2);
     }
   }
   // relationships are now synced
   
-  // Set contempGroups = [] just in case
+  // Create all contemporary groups
+  contempGroups = [0] // just in case
+  
   // For every node in hashmap:
-    // let tempGroups = [];
+  for (const node of hashedEvents.values()) {
+    let tempGroups = []; // This will store all related groups discovered, to be merged later
+    
     // if node has a group: add group to tempGroups
+    if (event.contemporaryGroup) { tempGroups.push(event.contemporaryGroup); }
+    
     // For every contemp in node:
+    for (const contemp of node.contemporaries) {
       // If contemp has a group: add group to tempGroups
-    // Switch (tempGroups.length()) {
-      // case 0: Create new group, add node and all contemps to new group, update all node group pointers
-      // case 1: add all events that arent already to group, addnode group pointers
-      // case > 1 Create new group, add all events (from groups, and current node, and node.contemp) to new group, set all members of new group to point to new group.
-    // In any case where an event is added to a group, new or merge:
-      // Add it's relationships to the group obejct
-      // Update the targets of those relationships to point to the group object instead.
+      let thisEvent = hashedEvents.get(contemp).contemporaryGroup
+      if (thisEvent) { tempGroups.push(thisEvent); }
+    }
+    
+    switch (true) {
+      // if no contemps have a group:
+      case (tempGroups.length === 0): // Create new group, add node and all contemps to new group, update all node group pointers
+        let newGroup = addContemporaryGroup();
+        
+        // Set current node
+        newGroup.push(node);
+        node.contemporaryGroup = newGroup.id;
+        
+        for (const contemp of node.contemporaries) {
+          // add contemp to group as memeber
+          newGroup.push(contemp);
+          
+          // update contemp's group value to be newGroup
+          contemp.contemporaryGroup = newGroup.id;
+        }
+        
+        deduplicateSingle(newGroup.members);
+      
+      // if contemps only have 1 group between them:
+      case (tempGroups.length === 1): // add all events that arent already to group, addnode group pointers
+        let newGroup = tempGroups[0];
+        
+        // Set current node
+        newGroup.push(node);
+        node.contemporaryGroup = newGroup.id;
+        
+        for (const contemp of node.contemporaries) {
+          // add contemp to group as memeber
+          newGroup.push(contemp);
+          
+          // update contemp's group value to be newGroup
+          contemp.contemporaryGroup = newGroup.id;
+        }
+        
+        deduplicateSingle(newGroup.members);
+      
+      // if contemps have more than 1 group:
+      case ( tempGroups.length > 1): // Create new group, add all events (from groups, and current node, and node.contemp) to new group, set all members of new group to point to new group.
+        let newGroup = addContemporaryGroup();
+        
+        // For every contemp of every member of every group involved:
+        for (const oldGroup of tempGroups) {
+          for (const member of oldGroup.members) {
+            // add member to group as memeber
+            newGroup.push(member);
+            
+            // update member's group value to be newGroup
+            member.contemporaryGroup = newGroup.id;
+            
+            for (const contemp of member.contemporaries) {
+              // add contemp to group as memeber
+              newGroup.push(contemp);
+              
+              // update contemp's group value to be newGroup
+              contemp.contemporaryGroup = newGroup.id;
+            }
+          }
+        }
+        
+        // Set current node
+        newGroup.push(node);
+        node.contemporaryGroup = newGroup.id;
+        
+        // For every contemp of the active event:
+        for (const contemp of node.contemporaries) {
+          // add contemp to group as memeber
+          newGroup.push(contemp);
+          
+          // update contemp's group value to be newGroup
+          contemp.contemporaryGroup = newGroup.id;
+        }
+        
+        deduplicateSingle(newGroup.members);
+    }
+  }
   // Events are now grouped
   
   // For all groups:
-    // Remove all events in groups from normal hashmap
-    // Add virtual "group" type event (which contains it's events) to the hashmap
+  for (const group of hashedContempGroups.values()) {
+    // Add group to the hashmap
+    hashedEvents.set(group.id, group);
+    
+    // For all members of the gorup
+    for (const member of group.members) {
+      // Add it's priors and followers to the group obejct
+      group.priors = [...new Set([...group.priors, ...member.priors])]; // This prevents duplicates, consider making this a fucntion .-.
+      group.followers = [...new Set([...group.followers, ...member.followers])];
+      
+      // Update the targets of those relationships to point to the group object instead.
+      for (const prior of member.priors) {
+        // Remove member from the prior's list of followers
+        hashedEvents.get(prior).followers.filter(id => id !== member.id);
+        
+        // Add group.id to the prior's followers
+        prior.followers.push(group.id);
+      }
+      
+      for (const follower of member.followers) {
+        // Remove member from the follower's list of priors
+        hashedEvents.get(follower).priors.filter(id => id !== member.id);
+        
+        // Add group.id to the follower's priors
+        follower.priors.push(group.id);
+      }
+      
+      // Remove member from normal hashmap
+      hashedEvents.delete(member.id);
+    }
+  }
+  // All that remains should be groups of contemporary events and single events. Ready to count priors and draw.
 }
 
 function addRelationship(targetId, relationshipId, relationshipType) { // Assumes virtual events have been built and all events are in hashmap
@@ -248,15 +338,46 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
       switch (targetNode.type) {
         case "event": targetNode.contemporaries.push(relationshipId);
         case "timeline":
+          if (relationshipId.type == "event") { // If the target is a timeline and the value is an event
+            hashedEvents.get('${targetId} Entry Node 0').followers.push(relationshipId);
+            hashedEvents.get('${targetId} Exit Node 0').priors.push(relationshipId);
+          }
+          else if (relationshipId.type == "timeline") { // If target is timeline and value is event
+            hashedEvents.get('${targetId} Entry Node 0').followers.push('${relationshipId} Exit Node 0');
+            hashedEvents.get('${targetId} Exit Node 0').priors.push('${relationshipId} Entry Node 0');
+          }
       }
   }
 }
 
+function addContemporaryGroup() { // creates, and then returns, an empty group object with a unique name
+  // Increment the number of created groups so that I have a unique value
+  contempGroups[0]++;
+  
+  // Add the new group object to the group array
+  contempGroups.push(
+    {
+      "id": `contemporaryGroup${contempGroups[0]}`,
+      "type": "contemporaryGroup",
+      "members": [],
+      "priors": [],
+      "followers": [],
+      "contemporaries": []
+    }
+  )
+  
+  // Save the group to the group hashmap
+  hashedContempGroups.set(`contemporaryGroup${contempGroups[0]}`, contempGroups.at(-1));
+  
+  // Return the group object so that I can add members to it more eaisly
+  return contempGroups.at(-1);
+}
+
 function buildDrawQueue() {
   // For every event in hashmap:
-    // If (node.priors.length() == 0) { add node to queue, remove from hashmap }
+    // If (node.priors.length == 0) { add node to queue, remove from hashmap }
     // Else
-      // If node.followers.length() == 0 { add to noRelations hashmap, remove from main hashmap }
+      // If node.followers.length == 0 { add to noRelations hashmap, remove from main hashmap }
 }
 
 function processQueue() {
@@ -279,8 +400,8 @@ function drawEvent(node) {
     // C) Read and update the posiiton of each column in the array created from processQueue()
 }
 
-function deduplicate() {
-  // For every event in the hashmap:
+function deduplicateFull() {
+  // For every event in the event hashmap:
   for (const node of hashedEvents.values()) {
     // Expand the property array into a set (which removes duplicates) and then colapse back into an array
     if (Array.isArray(node.priors)) {
@@ -293,5 +414,14 @@ function deduplicate() {
       node.contemporaries = [...new Set(node.contemporaries)];
     }
   }
+  
+  // For every group in the contemp group hashmap:
+  for (const node of hashedContempGroups.values()) {
+    // Expand its members array to a set, then colapse
+    node.members = [...new Set(node.members)];
+  }
 }
 
+function deduplicateSingle(list) { // Send any spreadable thing to this and it will deduplicate it and return it
+  return list = [...new Set(list)];
+}
