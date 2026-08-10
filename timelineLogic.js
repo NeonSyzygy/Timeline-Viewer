@@ -207,10 +207,10 @@ function syncData() { // Synchronizes relationships across events and groups con
         
         for (const contemp of node.contemporaries) {
           // add contemp to group as memeber
-          newGroup.members.push(contemp);
+          newGroup.members.push(hashedEvents.get(contemp));
           
           // update contemp's group value to be newGroup
-          contemp.contemporaryGroup = newGroup.id;
+          hashedEvents.get(contemp).contemporaryGroup = newGroup.id;
         }
         
         newGroup.members = deduplicateSingle(newGroup.members);
@@ -226,10 +226,10 @@ function syncData() { // Synchronizes relationships across events and groups con
         
         for (const contemp of node.contemporaries) {
           // add contemp to group as memeber
-          newGroup.members.push(contemp);
+          newGroup.members.push(hashedEvents.get(contemp));
           
           // update contemp's group value to be newGroup
-          contemp.contemporaryGroup = newGroup.id;
+          hashedEvents.get(contemp).contemporaryGroup = newGroup.id;
         }
         
         newGroup.members = deduplicateSingle(newGroup.members);
@@ -250,10 +250,10 @@ function syncData() { // Synchronizes relationships across events and groups con
             
             for (const contemp of member.contemporaries) {
               // add contemp to group as memeber
-              newGroup.members.push(contemp);
+              newGroup.members.push(hashedEvents.get(contemp));
               
               // update contemp's group value to be newGroup
-              contemp.contemporaryGroup = newGroup.id;
+              hashedEvents.get(contemp).contemporaryGroup = newGroup.id;
             }
           }
         }
@@ -265,10 +265,10 @@ function syncData() { // Synchronizes relationships across events and groups con
         // For every contemp of the active event:
         for (const contemp of node.contemporaries) {
           // add contemp to group as memeber
-          newGroup.members.push(contemp);
+          newGroup.members.push(hashedEvents.get(contemp));
           
           // update contemp's group value to be newGroup
-          contemp.contemporaryGroup = newGroup.id;
+          hashedEvents.get(contemp).contemporaryGroup = newGroup.id;
         }
         
         newGroup.members = deduplicateSingle(newGroup.members);
