@@ -111,7 +111,7 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
     // If it isn't the first virtual entry node:
     if (lastVirtualEntryNode != null) {
       // add the previous entry node as contemporary
-      currentVirtualNode.contemporaries.push(lastVirtualEntryNode);
+      currentVirtualNode.contemporaries.push(lastVirtualEntryNode.id);
     }
     
     // Add event to the hashmap
@@ -130,11 +130,11 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
     // If it isn't the first virtual exit node:
     if (lastVirtualExitNode != null) {
       // add the previous exit node as contemporary
-      currentVirtualNode.contemporaries.push(lastVirtualExitNode);
+      currentVirtualNode.contemporaries.push(lastVirtualExitNode.id);
     }
     
     // Add last entry as a prior of current event
-    currentVirtualNode.priors.push(lastVirtualEntryNode);
+    currentVirtualNode.priors.push(lastVirtualEntryNode.id);
     
     // Add event to the hashmap
     hashedEvents.set(currentVirtualNode.id, currentVirtualNode);
@@ -186,13 +186,13 @@ function syncData() { // Synchronizes relationships across events and groups con
     let tempGroups = []; // This will store all related groups discovered, to be merged later
     
     // if node has a group: add group to tempGroups
-    if (node.contemporaryGroup) { tempGroups.push(node.contemporaryGroup); }
+    if (node.contemporaryGroup) { tempGroups.push(hashedContempGroups.get(node.contemporaryGroup)); }
     
     // For every contemp in node:
     for (const contemp of node.contemporaries) {
       // If contemp has a group: add group to tempGroups
       let thisEvent = hashedEvents.get(contemp).contemporaryGroup
-      if (thisEvent) { tempGroups.push(thisEvent); }
+      if (thisEvent) { tempGroups.push(hashedContempGroups.get(thisEvent)); }
     }
     
     let newGroup;
@@ -374,7 +374,7 @@ function addRelationship(targetId, relationshipId, relationshipType) { // Assume
             hashedEvents.get(`${targetId} Entry Node 0`).followers.push(relationshipId);
             hashedEvents.get(`${targetId} Exit Node 0`).priors.push(relationshipId);
           }
-          else if (relationshipNode.type == "timeline") { // If target is timeline and value is event
+          else if (relationshipNode.type == "timeline") { // If both target and value are timelines
             hashedEvents.get(`${targetId} Entry Node 0`).followers.push(`${relationshipId} Exit Node 0`);
             hashedEvents.get(`${targetId} Exit Node 0`).priors.push(`${relationshipId} Entry Node 0`);
           }
@@ -457,5 +457,5 @@ function deduplicateFull() {
 }
 
 function deduplicateSingle(list) { // Send any spreadable thing to this and it will deduplicate it and return it
-  return list = [...new Set(list)];
+  return [...new Set(list)];
 }
