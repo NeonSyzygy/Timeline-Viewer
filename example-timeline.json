@@ -1,9 +1,12 @@
 {
   "type": "timeline",
+  "subtype": "root",
+  "parent": "",
   "id": "Main Timeline",
   "timelines": [
     {
       "type": "timeline",
+      "parent": "Main Timeline",
       "id": "Subtimeline",
       "column": 1,
       "width": 2,
@@ -14,12 +17,21 @@
       "events": [
         {
           "type": "event",
-          "id": "Event 2"
+          "parent": "Subtimeline",
+          "id": "Event 2",
+          "column": 0,
+          "priors": [],
+          "followers": [],
+          "contemporaries": []
         },
         {
           "type": "event",
+          "parent": "Subtimeline",
           "id": "Event 3",
-          "column": 2
+          "column": 1,
+          "priors": [],
+          "followers": [],
+          "contemporaries": []
         }
       ]
     }
@@ -27,8 +39,12 @@
   "events": [
     {
       "type": "event",
+      "parent": "Main Timeline",
       "id": "Event 1",
-      "priors": ["Event 2"]
+      "column": 0,
+      "priors": ["Event 2"],
+      "followers": [],
+      "contemporaries": []
     }
   ]
 }
