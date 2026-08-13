@@ -427,7 +427,7 @@ function buildDrawQueue() {
   // For every event in hashmap:
   for (node of hashedEvents.values()) {
     // If a node has no priors:
-    if (node.priors.length == 0 {
+    if (node.priors.length == 0) {
       // add node to queue
       drawQueue.push(node);
       // add node to delete queue
