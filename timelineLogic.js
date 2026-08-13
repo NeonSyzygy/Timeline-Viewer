@@ -86,7 +86,7 @@ function flatRecurse(node, parentEntryExit) { // Only gets called one timeline n
     let currentEntryExit = handleVirtualEvents(node, parentEntryExit)
     
     // Insert real events between them.
-    handleSubtimelineEvents(node, handleVirtualEvents(node, currentEntryExit));
+    handleSubtimelineEvents(node, currentEntryExit);
     
     // Repeat for all timelines inside node
     for (const timeline of node.timelines) {
