@@ -464,6 +464,7 @@ function processQueue() {
         // Remove from hashmap
         hashedEvents.remove(follower.id);
       }
+    }
     
     // Draw the event
     drawEvent(currentEvent);
