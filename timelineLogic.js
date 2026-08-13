@@ -6,6 +6,12 @@ let hashedEvents = new Map();
 let hashedTimelines = new Map();
 let hashedContempGroups = new Map();
 let contempGroups = [0]; // index 0 is an int that counts how many groups I've created, to use as unique names
+
+const COLUMN_WIDTH = 220; // width of a column in pixels
+const COLUMN_SPACING = 0; // Vertical spacing between events in a column
+let columnBottoms = {}; // Tracks current bottom Y coordinate per column index
+
+let drawQueue = []; // The array holding the events ready to be drawn
     
 document.getElementById("timeline-button-load-file").addEventListener("click", handleLoadTimeline);
 
@@ -415,27 +421,99 @@ function addContemporaryGroup() { // creates, and then returns, an empty group o
 }
 
 function buildDrawQueue() {
+  drawQueue = [] // Just in case
+  let deleteQueue = [] // Nodes to be deleted from the hashmap
+  
   // For every event in hashmap:
-    // If (node.priors.length == 0) { add node to queue, remove from hashmap }
+  for (node of hashedEvents.values()) {
+    // If a node has no priors:
+    if (node.priors.length == 0 {
+      // add node to queue
+      drawQueue.push(node);
+      // add node to delete queue
+      deleteQueue.push(node);
+    }
+  }
+  
+  // Until the delete queue is empty:
+  while (deleteQueue.length > 0) {
+    // Remove node from the hashmap
+    hashedEvents.remove(deleteQueue[0].id)
+    // Remove node from delete queue
+    deleteQueue.splice(0, 1);
+  }
 }
 
 function processQueue() {
-  // Create an array to store the current position of each column.
-  // while (queue.length > 0) {
-    // let currentEvent = queue.shift();
-    // for all in followers:
-      // remove event from priors
-      // If follower now has 0 priors: Add to queue
-    // drawEvent(currentEvent);
-  // If hashMap still has stuff in it: Something is wrong
+  columnBottoms = []; // just in case
+  
+  // Until the draw queue is empty:
+  while (drawQueue.length > 0) {
+    // Remove the first event in drawQueue and save it
+    let currentEvent = drawQueue.shift();
+    
+    // for all of currentEvent's followers:
+    for (follower of currentEvent.followers) {
+      // remove currentEvent from follower's priors
+      follower.priors.filter(currentEvent.id);
+      
+      // If follower now has 0 priors:
+      if (follower.priors.length == 0) {
+        // Add to queue
+        drawQueue.push(follower);
+        // Remove from hashmap
+        hashedEvents.remove(follower.id);
+      }
+    
+    // Draw the event
+    drawEvent(currentEvent);
+  }
+  
+  // If hashMap still has stuff in it:
+  if (hashedEvents.values().length > 0) {
+    console.log("circular dependancy in events likely");
+  }
 }
 
 function drawEvent(node) {
-  // Draw the event, idk
-  // This will need to:
-    // A) Get the column from the event itself, which likely includes checking the event's parent timeline starting column
-    // B) handle groups, I guess by calling itself for every event in the group?
-    // C) Read and update the posiiton of each column in the array created from processQueue()
+  // get pan and zoom container
+  const panZoomContainer = document.getElementById("timeline-panzoom-container");
+  
+  const columnIndex = getColumnIndex(node);
+  const xPosition = columnIndex * COLUMN_WIDTH;
+  
+  // Initialize vertical tracker for this column if needed
+  if (columnBottoms[columnIndex] === undefined) {
+    columnBottoms[columnIndex] = 0;
+  }
+  const yPosition = columnBottoms[columnIndex];
+  
+  // Create the event container
+  const eventContainer = document.createElement("div");
+  eventContainer.className = "timeline-event-box";
+  eventContainer.style.position = "absolute";
+  eventContainer.style.left = `${xPosition}px`;
+  eventContainer.style.top = `${yPosition}px`;
+  eventContainer.style.width = `${COLUMN_WIDTH}px`;
+  
+  // Add event content
+  eventContainer.textContent = node.id;
+  
+  // Add event to the Pan and Zoom container
+  panZoomContainer.appendChild(eventContainer);
+  
+  // Read event height
+  const measuredHeight = eventContainer.offsetHeight;
+  
+  // Update the column's bottom tracker
+  columnBottoms[columnIndex] += measuredHeight + COLUMN_SPACING;
+}
+
+function getColumnIndex(node) {
+  // If the node is not root, add its column and continue the chain
+  if (node.subtype != "root") { return node.column + getColumnIndex(hashedEvents.get(node.parent)); }
+  // Else, if the node is root, Return 0 and complete the chain
+  else if (node.subtype == "root") { return 0; }
 }
 
 function deduplicateFull() {
