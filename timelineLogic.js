@@ -438,7 +438,7 @@ function buildDrawQueue() {
   // Until the delete queue is empty:
   while (deleteQueue.length > 0) {
     // Remove node from the hashmap
-    hashedEvents.remove(deleteQueue[0].id)
+    hashedEvents.delete(deleteQueue[0].id)
     // Remove node from delete queue
     deleteQueue.splice(0, 1);
   }
@@ -462,7 +462,7 @@ function processQueue() {
         // Add to queue
         drawQueue.push(follower);
         // Remove from hashmap
-        hashedEvents.remove(follower.id);
+        hashedEvents.delete(follower.id);
       }
     }
     
