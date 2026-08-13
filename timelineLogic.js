@@ -81,12 +81,20 @@ function buildTimeline() { // Run this any time timelineData has changes that yo
 }
 
 function flatRecurse(node, parentEntryExit) { // Only gets called one timeline nodes, not Events.
+console.log("Start flatRecurse()");
+console.log("node: ", node);
+console.log("parentEntryExit: ", parentEntryExit);
   if (node.id) { // If the timeline has a valid ID:
     //Insert virtual entry/exit events
     let currentEntryExit = handleVirtualEvents(node, parentEntryExit)
     
-    // Insert real events between them.
-    handleSubtimelineEvents(node, currentEntryExit);
+    // If both entry exit's are not null:
+    if ((currentEntryExit[0] != null) && (currentEntryExit
+    [1] != null)) {
+      // Insert real events between them.
+      handleSubtimelineEvents(node, currentEntryExit);
+    }
+    else { console.log("Skipping handleSubtimelineEvents()"); }
     
     // Repeat for all timelines inside node
     for (const timeline of node.timelines) {
@@ -96,6 +104,16 @@ function flatRecurse(node, parentEntryExit) { // Only gets called one timeline n
 }
 
 function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets called one timeline nodes, not Events.
+console.log("Start handleVirtualEvents()");
+console.log("node: ", node);
+console.log("entryExit: ", entryExit);
+
+  // Skip virtual events for root timeline
+  if (node.subtype == "root") { return [null, null]; }
+  
+  // If not root: continue
+  else if (node.subtype != "root") {
+    
   // Save current timeline to the timelines hash map.
   hashedTimelines.set(node.id, node);
   
@@ -151,9 +169,14 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
   
   // Return the last entry and exit events so i can mark real events as between them later
   return [lastVirtualEntryNode, lastVirtualExitNode];
+  }
 }
 
 function handleSubtimelineEvents(node, entryExitNodes) { // Only gets called one timeline nodes, not Events.
+console.log("Start handleSubtimelineEvents()");
+console.log("node: ", node);
+console.log("entryExitNodes: ", entryExitNodes);
+
   // For every event in the current timeline:
   for (const event of node.events) {
     // Add event to the hashmap
@@ -165,7 +188,9 @@ function handleSubtimelineEvents(node, entryExitNodes) { // Only gets called one
   }
 }
 
-function syncData() { // Synchronizes relationships across events and groups contemporaries 
+function syncData() { // Synchronizes relationships across events and groups contemporaries
+console.log("Start syncData()");
+
   // For every node in both hashmaps:
   for (const node of [...hashedEvents.values(), ...hashedTimelines.values()]) {
     // For every relationship in node:
@@ -421,9 +446,14 @@ function addContemporaryGroup() { // creates, and then returns, an empty group o
 }
 
 function buildDrawQueue() {
+console.log("Start buildDrawQueue()");
+
   drawQueue = [] // Just in case
   let deleteQueue = [] // Nodes to be deleted from the hashmap
   
+console.log("hashedEvents: ", hashedEvents);
+// Something is wrong. At least one group is being set as it's own prior.
+
   // For every event in hashmap:
   for (node of hashedEvents.values()) {
     // If a node has no priors:
@@ -445,10 +475,15 @@ function buildDrawQueue() {
 }
 
 function processQueue() {
+console.log("Start processQueue()");
+console.log("drawQueue: ", drawQueue);
+
   columnBottoms = []; // just in case
   
   // Until the draw queue is empty:
   while (drawQueue.length > 0) {
+    console.log("processQueue while loop");
+    console.log("drawQueue: ", drawQueue);
     // Remove the first event in drawQueue and save it
     let currentEvent = drawQueue.shift();
     
@@ -477,6 +512,9 @@ function processQueue() {
 }
 
 function drawEvent(node) {
+console.log("Start drawEvent()");
+console.log("node: ", node);
+
   // get pan and zoom container
   const panZoomContainer = document.getElementById("timeline-panzoom-container");
   
