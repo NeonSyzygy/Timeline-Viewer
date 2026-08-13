@@ -110,7 +110,7 @@ function handleVirtualEvents(node, entryExit) { // Returns entryExit. Only gets 
   
   // Add virtual entry events
   // For every column in the timeline:
-  for (let c = 0; c < node.width; c++) {
+  for (let c = 0; c < node.width; c++) { // This fails when running on the root timeline because it has no width. I should skipp entry/exit nodes for root is probably the easiest solution
     // Add new entry event to the current timeline, and save that object to currentVirtualNode
     currentVirtualNode = node.events[node.events.push({ id: `${node.id} Entry Node ${c}`, type: "event", subtype: "entry", priors: [], followers: [], contemporaries: [] })-1];
     
